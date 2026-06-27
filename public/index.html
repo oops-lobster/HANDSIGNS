@@ -10,18 +10,25 @@
     <main class="app">
       <section class="workspace">
         <header class="topbar">
-          <div>
-            <p class="eyebrow">Text to Korean Sign Video</p>
-            <h1>HANDSIGNS</h1>
+          <div class="brand">
+            <img src="mark.svg" alt="" class="brandMark">
+            <div>
+              <p class="eyebrow">Korean Text to Sign Video</p>
+              <h1>HANDSIGNS</h1>
+              <p class="tagline">Gemini KSL preprocessing with Culture Portal sign data.</p>
+            </div>
           </div>
           <div class="status" id="status">준비됨</div>
         </header>
 
         <form class="composer" id="translateForm">
-          <label for="textInput">한국어 문장</label>
+          <div class="composerHeader">
+            <label for="textInput">한국어 문장</label>
+            <span>자동 수어 영상 큐</span>
+          </div>
           <div class="inputRow">
-            <textarea id="textInput" name="text" rows="4" placeholder="예: 안녕하세요 감사합니다"></textarea>
-            <button type="submit">변환</button>
+            <textarea id="textInput" name="text" rows="4" placeholder="예: 안녕하세요 반갑습니다"></textarea>
+            <button type="submit">영상 만들기</button>
           </div>
         </form>
 
@@ -45,6 +52,15 @@
               <span id="queueCount">0개</span>
             </div>
             <ol class="timeline" id="timeline"></ol>
+            <section class="plannerPanel" aria-label="KSL 변환 순서">
+              <div class="queueHeader">
+                <strong>KSL 순서</strong>
+                <span id="plannerSource">대기</span>
+              </div>
+              <div class="tokenList" id="plannerTokens">
+                <span>문장을 입력하면 표시됩니다.</span>
+              </div>
+            </section>
           </aside>
         </section>
       </section>

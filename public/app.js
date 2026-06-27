@@ -7,6 +7,8 @@ const queueCount = document.querySelector("#queueCount");
 const prevButton = document.querySelector("#prevButton");
 const playButton = document.querySelector("#playButton");
 const nextButton = document.querySelector("#nextButton");
+const plannerSource = document.querySelector("#plannerSource");
+const plannerTokens = document.querySelector("#plannerTokens");
 
 const apiBaseUrl = window.HANDSIGNS_API_BASE_URL || "";
 
@@ -69,6 +71,18 @@ function renderTimeline() {
       showPreview(Number(button.dataset.index));
     });
   });
+}
+
+function renderPlanner(plan) {
+  const source = plan?.source === "gemini" ? "Gemini" : "기본";
+  const kslOrder = Array.isArray(plan?.ksl?.ksl_syntax_order) ? plan.ksl.ksl_syntax_order : [];
+  const terms = Array.isArray(plan?.terms) ? plan.terms.map(item => item.term) : [];
+  const tokens = kslOrder.length ? kslOrder : terms;
+
+  plannerSource.textContent = source;
+  plannerTokens.innerHTML = tokens.length
+    ? tokens.map(token => `<span data-kind="${kslOrder.includes(token) ? "ksl" : "term"}">${escapeHtml(token)}</span>`).join("")
+    : "<span>문장을 입력하면 표시됩니다.</span>";
 }
 
 function showEmptyState(title, message) {
@@ -191,9 +205,11 @@ form.addEventListener("submit", async event => {
   queue = [];
   activeIndex = 0;
   renderTimeline();
+  renderPlanner(null);
 
   try {
     const data = await translate(text);
+    renderPlanner(data.planner);
     queue = flattenResults(data);
     renderTimeline();
 
