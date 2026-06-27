@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
+import { pathToFileURL } from "node:url";
 import { Readable } from "node:stream";
 
 const rootDir = process.cwd();
@@ -429,12 +430,17 @@ function upgradeSldictUrl(value) {
   }
 }
 
-function proxiedMediaUrl(value) {
+function mediaUrlForClient(value) {
   if (!value) return "";
 
   try {
     const url = new URL(upgradeSldictUrl(value));
     if (!["http:", "https:"].includes(url.protocol)) return value;
+
+    if (url.hostname === "sldict.korean.go.kr") {
+      return url.href;
+    }
+
     return `/api/media/video?url=${encodeURIComponent(url.href)}`;
   } catch {
     return value;
@@ -456,7 +462,7 @@ function normalizeEntry(entry, searchedTerm, source) {
     sourceName: source.name,
     title: getFirstValue(entry, ["title", "word", "name", "signWord", "korName", "term", "subject", "krwd"]) || searchedTerm,
     description: getFirstValue(entry, ["signDescription", "description", "desc", "contents", "content", "meaning", "explanation", "sense", "dc", "subDescription"]),
-    videoUrl: proxiedMediaUrl(rawVideoUrl),
+    videoUrl: mediaUrlForClient(rawVideoUrl),
     rawVideoUrl,
     imageUrl,
     resourceUrl,
@@ -689,7 +695,7 @@ async function serveStatic(req, res, url) {
   }
 }
 
-createServer(async (req, res) => {
+export default async function handler(req, res) {
   const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
 
   if (url.pathname.startsWith("/api/")) {
@@ -698,6 +704,10 @@ createServer(async (req, res) => {
   }
 
   await serveStatic(req, res, url);
-}).listen(port, host, () => {
-  console.log(`HANDSIGNS is running at http://${host}:${port}`);
-});
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  createServer(handler).listen(port, host, () => {
+    console.log(`HANDSIGNS is running at http://${host}:${port}`);
+  });
+}

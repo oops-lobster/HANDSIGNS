@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "node server.js",
-    "start": "NODE_ENV=production node server.js"
+    "start": "NODE_ENV=production node server.js",
+    "vercel-build": "node --check server.js && node --check public/app.js"
   },
   "engines": {
     "node": ">=18"

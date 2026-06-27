@@ -115,28 +115,27 @@ Request body:
 
 Returns the Gemini or fallback search plan plus normalized sign candidates for each term.
 
-## Deployment Notes
+## Vercel Deployment
 
-The repository includes a GitHub Pages workflow:
-
-```text
-.github/workflows/pages.yml
-```
-
-GitHub Pages can host the static frontend in `public/`, but it cannot safely store the Gemini API key or run the Node proxy. For a public deployment:
-
-1. Deploy the static frontend with GitHub Pages.
-2. Deploy `server.js` separately on a backend host such as Render, Fly.io, Railway, or a serverless platform.
-3. Add `GEMINI_API_KEY` and `CULTURE_API_KEY` as environment variables on that backend.
-4. Set the frontend API base URL in `public/config.js`:
+This project is configured for Vercel with `vercel.json`. Vercel serves the frontend and the Node API from the same deployment URL, so `public/config.js` can keep:
 
 ```js
-window.HANDSIGNS_API_BASE_URL = "https://your-api.example.com";
+window.HANDSIGNS_API_BASE_URL = "";
 ```
 
-For local development, keep the value empty so the frontend calls the same origin.
+Create a Vercel project from the GitHub repository, then add these environment variables in Vercel Project Settings:
 
-General users do not need `.env` files or API keys. They open the deployed frontend URL, and the frontend calls the deployed backend. The backend is the only place that talks to Gemini and the Culture Portal APIs.
+```bash
+GEMINI_API_KEY=
+CULTURE_API_INTEGRATED_KEY=
+CULTURE_API_LIFE_KEY=
+CULTURE_API_SPECIALIZED_KEY=
+CULTURE_API_CULTURE_KEY=
+```
+
+Vercel should use the default install command and the `vercel-build` script. The app runs through `server.js`, which exports a Vercel-compatible handler and still supports local development with `npm run dev`.
+
+General users do not need `.env` files or API keys. They open the deployed Vercel URL, and the backend is the only place that talks to Gemini and the Culture Portal APIs.
 
 The Culture Portal sign-language API is public, so its endpoint URLs are committed in `server.js`. The Gemini key must remain private because it can incur quota/cost and should only live in local or hosted backend environment variables.
 
