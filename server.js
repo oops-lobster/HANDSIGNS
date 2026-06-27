@@ -49,6 +49,80 @@ const defaultSources = [
   }
 ];
 
+const kslPreprocessPrompt = `# Role
+You are a core NLP pre-processing API for a Sign Language Translation System. Your job is to tokenize Korean text into semantic sign language units, eliminate grammatical particles, adjust the syntax to Korean Sign Language (KSL) grammar, and identify fingerspelling (지문자).
+
+# Output Format Specification
+- You MUST respond ONLY with a valid JSON object.
+- Do NOT include any markdown code blocks (e.g., \`\`\`json ... \`\`\`), conversational text, or explanations outside the JSON.
+- JSON Structure:
+{
+  "status": "success" | "error",
+  "error_message": "null if success, otherwise string",
+  "original_text": "string",
+  "ksl_tokens": ["string", "string", ...],
+  "ksl_syntax_order": ["string", "string", ...],
+  "meta": {
+    "has_fingerspelling": true | false,
+    "is_interrogative": true | false,
+    "is_negative": true | false
+  }
+}
+
+# Core Translation & Tokenization Rules
+
+1. Particle & Ending Elimination (조사 및 어미 제거)
+   - Strip all Korean particles (이/가, 을/를, 은/는, 에, 에서, 에게, 로/으로, 와/과 등).
+   - Convert all verbs and adjectives to their dictionary/infinitive form (e.g., "먹었다", "먹고", "먹으니" -> "먹다").
+
+2. KSL Syntax Ordering Rules (수어 어순 규칙)
+   - Default Order: [Time/When] -> [Place/Where] -> [Subject/Who] -> [Object/What] -> [Verb/Adjective]
+   - Negative Sentences: Move negative elements ("안", "못", "않다", "없다") to the absolute end of the sentence, immediately after the main verb. (e.g., "밥 안 먹어" -> ["밥", "먹다", "안"])
+   - Interrogative Sentences (Questions): Place interrogative pronouns ("누구", "무엇", "어디", "언제", "왜", "어떻게") at the absolute end of the sentence. (e.g., "이름이 뭐야?" -> ["너", "이름", "무엇"])
+
+3. Fingerspelling (지문자) Detection
+   - Identify Proper Nouns (unregistered specific nouns like human names, specific brand names, new technical terms).
+   - Wrap each character of a proper noun with "FS_". (e.g., "홍길동" -> "FS_홍", "FS_길", "FS_동")
+   - Common nouns like "학교", "사과", "회사" must NOT be fingerspelled.
+
+4. Pronoun Simplification
+   - Convert honorifics or complex pronouns to basic KSL pronouns (e.g., "저희", "우리" -> "우리", "당신", "어머님(대칭)" -> "너" 또는 "그녀/그" 맥락 유지).
+
+# Examples (Few-Shot for Deterministic Output)
+
+Input: "김철수는 오늘 학교에 가지 않았습니다."
+Output:
+{
+  "status": "success",
+  "error_message": null,
+  "original_text": "김철수는 오늘 학교에 가지 않았습니다.",
+  "ksl_tokens": ["김철수", "오늘", "학교", "가다", "않다"],
+  "ksl_syntax_order": ["오늘", "학교", "FS_김", "FS_철", "FS_수", "가다", "않다"],
+  "meta": {
+    "has_fingerspelling": true,
+    "is_interrogative": false,
+    "is_negative": true
+  }
+}
+
+Input: "너 어제 어디에 있었어?"
+Output:
+{
+  "status": "success",
+  "error_message": null,
+  "original_text": "너 어제 어디에 있었어?",
+  "ksl_tokens": ["너", "어제", "어디", "있다"],
+  "ksl_syntax_order": ["어제", "너", "있다", "어디"],
+  "meta": {
+    "has_fingerspelling": false,
+    "is_interrogative": true,
+    "is_negative": false
+  }
+}
+
+# Input Text
+Convert the following text strictly adhering to the rules above:`;
+
 async function loadEnv(path) {
   try {
     const envFile = await readFile(path, "utf8");
@@ -124,6 +198,36 @@ function fallbackPlan(text) {
   };
 }
 
+function termsFromKslPlan(parsed, originalText) {
+  const order = Array.isArray(parsed?.ksl_syntax_order) ? parsed.ksl_syntax_order : [];
+  const tokens = Array.isArray(parsed?.ksl_tokens) ? parsed.ksl_tokens : [];
+  const orderedTerms = order
+    .filter(token => typeof token === "string")
+    .map(token => token.trim())
+    .filter(Boolean);
+  const lexicalTerms = tokens
+    .filter(token => typeof token === "string")
+    .map(token => token.trim())
+    .filter(Boolean);
+  const apiSearchTerms = orderedTerms
+    .filter(token => !token.startsWith("FS_"))
+    .map(token => normalizeSearchText(token))
+    .filter(Boolean);
+
+  const merged = [
+    ...apiSearchTerms.map(term => ({ term, type: "ksl" })),
+    ...lexicalTerms.map(term => ({ term: normalizeSearchText(term), type: "word" })),
+    ...buildSearchTerms(originalText)
+  ];
+
+  const seen = new Set();
+  return merged.filter(item => {
+    if (!item.term || seen.has(item.term)) return false;
+    seen.add(item.term);
+    return true;
+  }).slice(0, 12);
+}
+
 function extractJson(text) {
   const cleaned = String(text || "")
     .replace(/^```json\s*/i, "")
@@ -154,31 +258,13 @@ async function planSignTerms(text) {
       body: JSON.stringify({
         systemInstruction: {
           parts: [{
-            text: [
-              "You prepare Korean input for Korean Sign Language dictionary/API search.",
-              "Return only compact JSON.",
-              "Prefer common sign dictionary headwords and short phrases.",
-              "Keep basic daily expressions such as 안녕하세요 and 반갑습니다 intact.",
-              "Do not translate to English.",
-              "Do not explain."
-            ].join(" ")
+            text: kslPreprocessPrompt
           }]
         },
         contents: [{
           role: "user",
           parts: [{
-            text: `Convert this Korean sentence into ordered Korean sign-language dictionary search terms.
-
-Sentence: ${normalized}
-
-Return this exact JSON shape:
-{"terms":[{"term":"안녕하세요 반갑습니다","type":"phrase"},{"term":"안녕하세요","type":"word"},{"term":"반갑습니다","type":"word"}]}
-
-Rules:
-- The first term should be the full phrase when useful.
-- Include each core daily sign expression separately after the phrase.
-- Remove particles/endings only when that helps dictionary lookup.
-- Maximum 8 terms.`
+            text: normalized
           }]
         }],
         generationConfig: {
@@ -196,28 +282,18 @@ Rules:
       ?.map(part => part.text || "")
       .join("\n");
     const parsed = extractJson(outputText);
-    const terms = Array.isArray(parsed?.terms) ? parsed.terms : [];
-    const normalizedTerms = terms
-      .map(item => ({
-        term: normalizeSearchText(item.term),
-        type: item.type === "phrase" ? "phrase" : "word"
-      }))
-      .filter(item => item.term);
+    if (parsed?.status === "error") {
+      throw new Error(parsed.error_message || "Gemini returned an error status.");
+    }
 
+    const normalizedTerms = termsFromKslPlan(parsed, text);
     if (!normalizedTerms.length) return fallbackPlan(text);
-
-    const fallbackTerms = fallbackPlan(text).terms;
-    const merged = [...normalizedTerms, ...fallbackTerms];
-    const seen = new Set();
 
     return {
       source: "gemini",
       model,
-      terms: merged.filter(item => {
-        if (seen.has(item.term)) return false;
-        seen.add(item.term);
-        return true;
-      }).slice(0, 10)
+      ksl: parsed,
+      terms: normalizedTerms
     };
   } catch (error) {
     return {
@@ -416,7 +492,7 @@ async function searchCultureApis(query) {
   const sources = getConfiguredSources();
   const apiKey = process.env.CULTURE_API_KEY;
 
-  if (!sources.length || !apiKey) {
+  if (!sources.length) {
     return {
       configured: false,
       entries: makePreviewEntries(query)
@@ -425,6 +501,7 @@ async function searchCultureApis(query) {
 
   return {
     configured: true,
+    usesApiKey: Boolean(apiKey),
     sources: sources.map(({ id, name }) => ({ id, name })),
     entries: dedupeEntries((await Promise.all(
       sources.map(source => searchOneSource(source, query, apiKey).catch(error => [{

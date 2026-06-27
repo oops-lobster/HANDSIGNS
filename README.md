@@ -123,17 +123,22 @@ The repository includes a GitHub Pages workflow:
 .github/workflows/pages.yml
 ```
 
-GitHub Pages can host the static frontend in `public/`, but it cannot safely store API keys or run the Node proxy. For a public deployment:
+GitHub Pages can host the static frontend in `public/`, but it cannot safely store the Gemini API key or run the Node proxy. For a public deployment:
 
 1. Deploy the static frontend with GitHub Pages.
 2. Deploy `server.js` separately on a backend host such as Render, Fly.io, Railway, or a serverless platform.
-3. Set the frontend API base URL in `public/config.js`:
+3. Add `GEMINI_API_KEY` and `CULTURE_API_KEY` as environment variables on that backend.
+4. Set the frontend API base URL in `public/config.js`:
 
 ```js
 window.HANDSIGNS_API_BASE_URL = "https://your-api.example.com";
 ```
 
 For local development, keep the value empty so the frontend calls the same origin.
+
+General users do not need `.env` files or API keys. They open the deployed frontend URL, and the frontend calls the deployed backend. The backend is the only place that talks to Gemini and the Culture Portal APIs.
+
+The Culture Portal sign-language API is public, so its endpoint URLs are committed in `server.js`. The Gemini key must remain private because it can incur quota/cost and should only live in local or hosted backend environment variables.
 
 ## Expert Feedback Needed
 

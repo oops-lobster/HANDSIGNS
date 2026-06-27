@@ -200,9 +200,14 @@ form.addEventListener("submit", async event => {
     const hasRealConfig = data.results.some(result => result.configured);
     const videoCount = queue.filter(entry => entry.videoUrl).length;
     const imageCount = queue.filter(entry => entry.imageUrl).length;
+    const hasCultureAuthError = data.results.some(result =>
+      (result.entries || []).some(entry => String(entry.description || "").includes("401"))
+    );
 
     if (!hasRealConfig) {
       setStatus("API 키 필요", "warning");
+    } else if (hasCultureAuthError) {
+      setStatus("수어 API 인증 필요", "danger");
     } else if (videoCount) {
       setStatus(`${videoCount}개 영상`, "success");
     } else if (imageCount) {
