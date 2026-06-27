@@ -26,24 +26,28 @@ const defaultSources = [
   {
     id: "life",
     name: "일상생활수어",
+    keyEnv: "CULTURE_API_LIFE_KEY",
     env: "CULTURE_API_LIFE_URL",
     defaultUrl: "https://api.kcisa.kr/openapi/service/rest/meta13/getCTE01701"
   },
   {
     id: "specialized",
     name: "전문용어수어",
+    keyEnv: "CULTURE_API_SPECIALIZED_KEY",
     env: "CULTURE_API_SPECIALIZED_URL",
     defaultUrl: "https://api.kcisa.kr/openapi/service/rest/meta13/getCTE01702"
   },
   {
     id: "culture",
     name: "문화정보수어",
+    keyEnv: "CULTURE_API_CULTURE_KEY",
     env: "CULTURE_API_CULTURE_URL",
     defaultUrl: "https://api.kcisa.kr/openapi/service/rest/meta13/getCTE01703"
   },
   {
     id: "integrated",
     name: "통합 수어",
+    keyEnv: "CULTURE_API_INTEGRATED_KEY",
     env: "CULTURE_API_INTEGRATED_URL",
     defaultUrl: "https://api.kcisa.kr/API_CNV_054/request"
   }
@@ -410,11 +414,12 @@ function isImageUrl(value) {
 
 function normalizeEntry(entry, searchedTerm, source) {
   const resourceUrl = getFirstValue(entry, ["url", "resourceUrl", "referenceUrl", "identifier"]);
+  const mediaUrl = getFirstValue(entry, ["subDescription"]);
   const explicitVideoUrl = getFirstValue(entry, ["videoUrl", "vodUrl", "movieUrl", "mp4Url", "signVideoUrl", "signVideo", "video", "mvurl", "fileUrl"]);
-  const explicitImageUrl = getFirstValue(entry, ["imageUrl", "imgUrl", "thumbnail", "thumbUrl", "signImageUrl", "image", "posterUrl", "referenceIdentifier"]);
+  const explicitImageUrl = getFirstValue(entry, ["imageUrl", "imgUrl", "thumbnail", "thumbUrl", "signImageUrl", "image", "imageObject", "posterUrl", "referenceIdentifier"]);
   const signImageUrl = firstCsvUrl(getFirstValue(entry, ["signImages"]));
-  const imageUrl = explicitImageUrl || signImageUrl || (isImageUrl(resourceUrl) ? resourceUrl : "");
-  const videoUrl = explicitVideoUrl || (isVideoUrl(resourceUrl) ? resourceUrl : "");
+  const imageUrl = explicitImageUrl || signImageUrl || (isImageUrl(mediaUrl) ? mediaUrl : "") || (isImageUrl(resourceUrl) ? resourceUrl : "");
+  const videoUrl = explicitVideoUrl || (isVideoUrl(mediaUrl) ? mediaUrl : "") || (isVideoUrl(resourceUrl) ? resourceUrl : "");
 
   return {
     searchedTerm,
@@ -445,8 +450,13 @@ function makePreviewEntries(query) {
   }));
 }
 
-async function searchOneSource(source, query, apiKey) {
+function getSourceApiKey(source) {
+  return process.env[source.keyEnv] || process.env.CULTURE_API_KEY || "";
+}
+
+async function searchOneSource(source, query) {
   const url = new URL(source.url);
+  const apiKey = getSourceApiKey(source);
   if (apiKey) {
     url.searchParams.set(process.env.CULTURE_API_KEY_PARAM || "serviceKey", apiKey);
   }
@@ -502,7 +512,6 @@ function dedupeEntries(entries) {
 
 async function searchCultureApis(query) {
   const sources = getConfiguredSources();
-  const apiKey = process.env.CULTURE_API_KEY;
 
   if (!sources.length) {
     return {
@@ -512,7 +521,7 @@ async function searchCultureApis(query) {
   }
 
   const settled = await Promise.all(
-    sources.map(source => searchOneSource(source, query, apiKey)
+    sources.map(source => searchOneSource(source, query)
       .then(entries => ({ source, entries, error: null }))
       .catch(error => ({ source, entries: [], error })))
   );
@@ -522,7 +531,7 @@ async function searchCultureApis(query) {
 
   return {
     configured: true,
-    usesApiKey: Boolean(apiKey),
+    usesApiKey: sources.some(source => Boolean(getSourceApiKey(source))),
     authRequired: authErrors.length === sources.length,
     warnings: [
       ...(authErrors.length ? ["Culture Portal API serviceKey is required."] : []),
