@@ -111,40 +111,59 @@ function collectEntries(payload) {
   return firstArray || [];
 }
 
-function normalizeEntry(entry, searchedTerm) {
+const defaultSources = [
+  { id: "life", name: "일상생활수어", env: "CULTURE_API_LIFE_URL" },
+  { id: "specialized", name: "전문용어수어", env: "CULTURE_API_SPECIALIZED_URL" },
+  { id: "culture", name: "문화정보수어", env: "CULTURE_API_CULTURE_URL" },
+  { id: "integrated", name: "통합 수어", env: "CULTURE_API_INTEGRATED_URL" }
+];
+
+function getConfiguredSources() {
+  const legacyUrl = process.env.CULTURE_API_BASE_URL;
+  return defaultSources
+    .map(source => ({
+      ...source,
+      url: process.env[source.env] || (source.id === "integrated" ? legacyUrl : "")
+    }))
+    .filter(source => source.url);
+}
+
+function normalizeEntry(entry, searchedTerm, source) {
   return {
     searchedTerm,
-    title: getFirstValue(entry, ["title", "word", "name", "signWord", "korName", "term", "subject"]) || searchedTerm,
-    description: getFirstValue(entry, ["description", "desc", "contents", "content", "meaning", "explanation"]),
-    videoUrl: getFirstValue(entry, ["videoUrl", "vodUrl", "movieUrl", "mp4Url", "signVideoUrl", "url"]),
-    imageUrl: getFirstValue(entry, ["imageUrl", "imgUrl", "thumbnail", "thumbUrl", "signImageUrl"]),
+    sourceId: source.id,
+    sourceName: source.name,
+    title: getFirstValue(entry, ["title", "word", "name", "signWord", "korName", "term", "subject", "krwd"]) || searchedTerm,
+    description: getFirstValue(entry, ["description", "desc", "contents", "content", "meaning", "explanation", "sense", "dc"]),
+    videoUrl: getFirstValue(entry, ["videoUrl", "vodUrl", "movieUrl", "mp4Url", "signVideoUrl", "video", "mvurl", "fileUrl", "url"]),
+    imageUrl: getFirstValue(entry, ["imageUrl", "imgUrl", "thumbnail", "thumbUrl", "signImageUrl", "image", "posterUrl"]),
     raw: entry
   };
 }
 
-async function searchCultureApi(query) {
-  const baseUrl = process.env.CULTURE_API_BASE_URL;
-  const apiKey = process.env.CULTURE_API_KEY;
+function makePreviewEntries(query) {
+  return defaultSources.map(source => ({
+    searchedTerm: query,
+    sourceId: source.id,
+    sourceName: source.name,
+    title: query,
+    description: `${source.name} API 설정 전 미리보기 항목입니다. .env에 endpoint와 키를 입력하면 실제 수어 영상 검색 결과가 표시됩니다.`,
+    videoUrl: "",
+    imageUrl: "",
+    raw: {}
+  }));
+}
 
-  if (!baseUrl || !apiKey) {
-    return {
-      configured: false,
-      entries: [
-        {
-          searchedTerm: query,
-          title: query,
-          description: "API 설정 전 미리보기 항목입니다. .env에 문화포털 API URL과 키를 입력하면 실제 검색 결과가 표시됩니다.",
-          videoUrl: "",
-          imageUrl: "",
-          raw: {}
-        }
-      ]
-    };
+async function searchOneSource(source, query, apiKey) {
+  const url = new URL(source.url);
+  if (apiKey) {
+    url.searchParams.set(process.env.CULTURE_API_KEY_PARAM || "serviceKey", apiKey);
   }
-
-  const url = new URL(baseUrl);
-  url.searchParams.set(process.env.CULTURE_API_KEY_PARAM || "serviceKey", apiKey);
   url.searchParams.set(process.env.CULTURE_API_QUERY_PARAM || "keyword", query);
+
+  const pageSizeParam = process.env.CULTURE_API_PAGE_SIZE_PARAM || "numOfRows";
+  const pageSize = process.env.CULTURE_API_PAGE_SIZE || "5";
+  if (pageSizeParam && pageSize) url.searchParams.set(pageSizeParam, pageSize);
 
   const formatParam = process.env.CULTURE_API_FORMAT_PARAM || "format";
   const format = process.env.CULTURE_API_FORMAT || "json";
@@ -158,20 +177,55 @@ async function searchCultureApi(query) {
 
   const text = await response.text();
   if (!response.ok) {
-    throw new Error(`Culture API request failed with ${response.status}: ${text.slice(0, 300)}`);
+    throw new Error(`${source.name} request failed with ${response.status}: ${text.slice(0, 300)}`);
   }
 
   let payload;
   try {
     payload = JSON.parse(text);
   } catch {
-    throw new Error("Culture API did not return JSON. Set CULTURE_API_FORMAT/CULTURE_API_FORMAT_PARAM to match the API document.");
+    throw new Error(`${source.name} did not return JSON. Set CULTURE_API_FORMAT/CULTURE_API_FORMAT_PARAM to match the API document.`);
+  }
+
+  return collectEntries(payload).map(entry => normalizeEntry(entry, query, source));
+}
+
+function dedupeEntries(entries) {
+  const seen = new Set();
+  return entries.filter(entry => {
+    const key = [entry.sourceId, entry.title, entry.videoUrl, entry.imageUrl].join("|");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function searchCultureApis(query) {
+  const sources = getConfiguredSources();
+  const apiKey = process.env.CULTURE_API_KEY;
+
+  if (!sources.length || !apiKey) {
+    return {
+      configured: false,
+      entries: makePreviewEntries(query)
+    };
   }
 
   return {
     configured: true,
-    entries: collectEntries(payload).map(entry => normalizeEntry(entry, query)),
-    raw: payload
+    sources: sources.map(({ id, name }) => ({ id, name })),
+    entries: dedupeEntries((await Promise.all(
+      sources.map(source => searchOneSource(source, query, apiKey).catch(error => [{
+        searchedTerm: query,
+        sourceId: source.id,
+        sourceName: source.name,
+        title: query,
+        description: error.message,
+        videoUrl: "",
+        imageUrl: "",
+        raw: { error: error.message }
+      }]))
+    )).flat())
   };
 }
 
@@ -180,7 +234,7 @@ async function handleApi(req, res, url) {
     if (req.method === "GET" && url.pathname === "/api/signs/search") {
       const query = url.searchParams.get("q")?.trim();
       if (!query) return sendJson(res, 400, { error: "Missing q query parameter." });
-      return sendJson(res, 200, await searchCultureApi(query));
+      return sendJson(res, 200, await searchCultureApis(query));
     }
 
     if (req.method === "POST" && url.pathname === "/api/signs/translate") {
@@ -190,7 +244,7 @@ async function handleApi(req, res, url) {
 
       const results = [];
       for (const term of terms) {
-        results.push({ term, ...(await searchCultureApi(term)) });
+        results.push({ term, ...(await searchCultureApis(term)) });
       }
 
       return sendJson(res, 200, { terms, results });

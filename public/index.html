@@ -4,14 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>HANDSIGNS</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main class="app">
       <section class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Korean Text to Sign</p>
+            <p class="eyebrow">Text to Korean Sign Video</p>
             <h1>HANDSIGNS</h1>
           </div>
           <div class="status" id="status">준비됨</div>
@@ -26,17 +26,31 @@
         </form>
 
         <section class="player" aria-label="수어 결과">
-          <div class="preview" id="preview">
-            <div class="emptyState">
-              <strong>문장을 입력하면 수어 검색 결과가 여기에 표시됩니다.</strong>
-              <span>각 단어를 문화포털 통합 수어 API에서 검색하는 MVP입니다.</span>
+          <div class="stage">
+            <div class="preview" id="preview">
+              <div class="emptyState">
+                <strong>문장을 입력하면 수어 영상 큐가 만들어집니다.</strong>
+                <span>일상생활수어, 전문용어수어, 문화정보수어, 통합 수어 API를 함께 검색합니다.</span>
+              </div>
+            </div>
+            <div class="controls" aria-label="재생 제어">
+              <button type="button" id="prevButton">이전</button>
+              <button type="button" id="playButton">재생</button>
+              <button type="button" id="nextButton">다음</button>
             </div>
           </div>
-          <ol class="timeline" id="timeline"></ol>
+          <aside class="queue">
+            <div class="queueHeader">
+              <strong>재생 큐</strong>
+              <span id="queueCount">0개</span>
+            </div>
+            <ol class="timeline" id="timeline"></ol>
+          </aside>
         </section>
       </section>
     </main>
 
-    <script src="/app.js" type="module"></script>
+    <script src="config.js"></script>
+    <script src="app.js" type="module"></script>
   </body>
 </html>

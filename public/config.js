@@ -1,0 +1,1 @@
+window.HANDSIGNS_API_BASE_URL = "";

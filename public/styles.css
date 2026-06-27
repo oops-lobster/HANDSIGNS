@@ -140,9 +140,14 @@ textarea:focus {
 
 .player {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 18px;
   align-items: start;
+}
+
+.stage {
+  display: grid;
+  gap: 12px;
 }
 
 .preview {
@@ -151,6 +156,27 @@ textarea:focus {
   border-radius: 8px;
   background: var(--panel);
   overflow: hidden;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.controls button {
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.controls button:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 
 .emptyState {
@@ -210,6 +236,28 @@ textarea:focus {
   padding: 26px;
 }
 
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sourceBadge {
+  max-width: 70%;
+  overflow: hidden;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: #dcebea;
+  color: var(--accent-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .details h2 {
   margin-bottom: 10px;
   font-size: 34px;
@@ -228,6 +276,24 @@ textarea:focus {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.queue {
+  display: grid;
+  gap: 12px;
+}
+
+.queueHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 2px;
+  color: var(--muted);
+}
+
+.queueHeader strong {
+  color: var(--ink);
 }
 
 .signCard {
@@ -251,6 +317,11 @@ textarea:focus {
 
 .cardButton:hover {
   border-color: var(--accent);
+}
+
+.cardButton[aria-current="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(15 118 110 / 14%);
 }
 
 .order {
