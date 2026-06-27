@@ -89,8 +89,9 @@ p {
 
 h1 {
   margin-bottom: 4px;
-  font-size: clamp(36px, 6vw, 72px);
-  line-height: 0.92;
+  font-size: clamp(40px, 6vw, 76px);
+  line-height: 0.98;
+  letter-spacing: 0;
 }
 
 .tagline {
@@ -153,7 +154,7 @@ h1 {
 
 .inputRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 132px;
+  grid-template-columns: minmax(0, 1fr) 140px;
   gap: 12px;
 }
 
@@ -178,12 +179,14 @@ textarea:focus {
 
 .inputRow button {
   min-height: 86px;
+  padding: 0 12px;
   border: 0;
   border-radius: 8px;
   color: white;
   background: linear-gradient(180deg, #137d75 0%, var(--accent-strong) 100%);
   font-weight: 900;
   cursor: pointer;
+  line-height: 1.25;
   box-shadow: 0 12px 24px rgb(15 118 110 / 24%);
 }
 
@@ -380,6 +383,36 @@ textarea:focus {
   font-size: 15px;
 }
 
+.awareness {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.awareness article {
+  min-height: 142px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 82%);
+  box-shadow: 0 9px 24px rgb(20 33 38 / 7%);
+}
+
+.awareness strong {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.awareness p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
 .timeline {
   display: grid;
   gap: 10px;
@@ -499,6 +532,10 @@ textarea:focus {
 
   .inputRow button {
     min-height: 52px;
+  }
+
+  .awareness {
+    grid-template-columns: 1fr;
   }
 
   .preview,

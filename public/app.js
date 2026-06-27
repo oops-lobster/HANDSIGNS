@@ -74,7 +74,7 @@ function renderTimeline() {
 }
 
 function renderPlanner(plan) {
-  const source = plan?.source === "gemini" ? "Gemini" : "기본";
+  const source = plan?.source === "gemini" ? "AI 분석" : "기본 분석";
   const kslOrder = Array.isArray(plan?.ksl?.ksl_syntax_order) ? plan.ksl.ksl_syntax_order : [];
   const terms = Array.isArray(plan?.terms) ? plan.terms.map(item => item.term) : [];
   const tokens = kslOrder.length ? kslOrder : terms;
@@ -221,10 +221,10 @@ form.addEventListener("submit", async event => {
     if (!queue.length) {
       isAutoPlaying = false;
       if (needsCultureKey) {
-        showEmptyState("수어 영상을 불러올 준비가 필요합니다.", "문화포털 serviceKey를 서버에 설정하면 자동으로 영상 재생 큐가 만들어집니다.");
+        showEmptyState("수어 영상을 연결할 준비를 하고 있습니다.", "문화포털 serviceKey를 서버에 설정하면 분석된 수어 순서대로 영상이 자동 재생됩니다.");
         setStatus("설정 필요", "warning");
       } else {
-        showEmptyState("아직 매칭된 수어 영상이 없습니다.", "다른 표현으로 다시 입력하거나 전문가 피드백용 누락 항목으로 기록할 수 있습니다.");
+        showEmptyState("아직 연결된 수어 영상이 없습니다.", "다른 표현으로 다시 입력하거나 전문가 피드백을 통해 누락 표현을 보완할 수 있습니다.");
         setStatus("결과 없음", "warning");
       }
       return;
@@ -249,7 +249,7 @@ form.addEventListener("submit", async event => {
     preview.innerHTML = `
       <div class="emptyState error">
         <strong>${escapeHtml(error.message)}</strong>
-        <span>GitHub Pages에서 열었다면 별도 백엔드 URL을 public/config.js에 설정해야 합니다.</span>
+        <span>잠시 후 다시 시도하거나 서버 연결 상태를 확인해 주세요.</span>
       </div>
     `;
   }

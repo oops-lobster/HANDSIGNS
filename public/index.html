@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>HANDSIGNS</title>
+    <title>수어잇다</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
@@ -13,9 +13,9 @@
           <div class="brand">
             <img src="mark.svg" alt="" class="brandMark">
             <div>
-              <p class="eyebrow">Korean Text to Sign Video</p>
-              <h1>HANDSIGNS</h1>
-              <p class="tagline">Gemini KSL preprocessing with Culture Portal sign data.</p>
+              <p class="eyebrow">한국어를 수어 영상으로</p>
+              <h1>수어잇다</h1>
+              <p class="tagline">농아인과 청인이 더 쉽게 만나는 수어 영상 변환 프로토타입</p>
             </div>
           </div>
           <div class="status" id="status">준비됨</div>
@@ -23,12 +23,12 @@
 
         <form class="composer" id="translateForm">
           <div class="composerHeader">
-            <label for="textInput">한국어 문장</label>
-            <span>자동 수어 영상 큐</span>
+            <label for="textInput">전달하고 싶은 문장</label>
+            <span>문장 분석 → 수어 순서 → 영상 재생</span>
           </div>
           <div class="inputRow">
             <textarea id="textInput" name="text" rows="4" placeholder="예: 안녕하세요 반갑습니다"></textarea>
-            <button type="submit">영상 만들기</button>
+            <button type="submit">수어로 보기</button>
           </div>
         </form>
 
@@ -36,8 +36,8 @@
           <div class="stage">
             <div class="preview" id="preview">
               <div class="emptyState">
-                <strong>문장을 입력하면 수어 영상 큐가 만들어집니다.</strong>
-                <span>일상생활수어, 전문용어수어, 문화정보수어, 통합 수어 API를 함께 검색합니다.</span>
+                <strong>말을 수어의 흐름으로 바꿔 보여줍니다.</strong>
+                <span>문장을 수어 표현 단위로 정리하고, 문화포털 수어 데이터를 찾아 순서대로 재생합니다.</span>
               </div>
             </div>
             <div class="controls" aria-label="재생 제어">
@@ -48,13 +48,13 @@
           </div>
           <aside class="queue">
             <div class="queueHeader">
-              <strong>재생 큐</strong>
+              <strong>수어 재생 순서</strong>
               <span id="queueCount">0개</span>
             </div>
             <ol class="timeline" id="timeline"></ol>
             <section class="plannerPanel" aria-label="KSL 변환 순서">
               <div class="queueHeader">
-                <strong>KSL 순서</strong>
+                <strong>수어 문장 구조</strong>
                 <span id="plannerSource">대기</span>
               </div>
               <div class="tokenList" id="plannerTokens">
@@ -62,6 +62,21 @@
               </div>
             </section>
           </aside>
+        </section>
+
+        <section class="awareness" aria-label="수어 인식 개선">
+          <article>
+            <strong>수어는 한국어의 보조가 아니라 하나의 언어입니다.</strong>
+            <p>단어를 그대로 치환하는 것만으로는 충분하지 않습니다. 어순, 표정, 공간, 맥락이 함께 전달되어야 합니다.</p>
+          </article>
+          <article>
+            <strong>이 MVP는 대화를 여는 도구입니다.</strong>
+            <p>수어 전문가와 농아인 당사자의 피드백을 받아 자연스러운 표현과 누락된 표현을 계속 보완합니다.</p>
+          </article>
+          <article>
+            <strong>접근성은 선택 기능이 아닙니다.</strong>
+            <p>일상 인사부터 공공정보까지, 누구나 이해할 수 있는 방식으로 정보가 제공되어야 합니다.</p>
+          </article>
         </section>
       </section>
     </main>
