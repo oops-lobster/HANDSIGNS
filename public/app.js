@@ -12,6 +12,7 @@ const apiBaseUrl = window.HANDSIGNS_API_BASE_URL || "";
 
 let queue = [];
 let activeIndex = 0;
+let isAutoPlaying = false;
 
 function escapeHtml(value) {
   return String(value || "")
@@ -29,14 +30,19 @@ function setStatus(message, tone = "neutral") {
 
 function mediaFor(entry) {
   if (entry.videoUrl) {
-    return `<video src="${escapeHtml(entry.videoUrl)}" controls playsinline autoplay muted></video>`;
+    return `<video src="${escapeHtml(entry.videoUrl)}" controls playsinline autoplay muted preload="auto"></video>`;
   }
 
   if (entry.imageUrl) {
     return `<img src="${escapeHtml(entry.imageUrl)}" alt="${escapeHtml(entry.title)} 수어 이미지">`;
   }
 
-  return `<div class="letterFallback">${escapeHtml(entry.title.slice(0, 12))}</div>`;
+  return `
+    <div class="noMedia">
+      <strong>${escapeHtml(entry.title.slice(0, 18))}</strong>
+      <span>표시할 영상/이미지 URL이 없습니다.</span>
+    </div>
+  `;
 }
 
 function renderEntry(entry, index) {
@@ -47,7 +53,7 @@ function renderEntry(entry, index) {
         <span class="order">${String(index + 1).padStart(2, "0")}</span>
         <span class="cardText">
           <strong>${escapeHtml(entry.title)}</strong>
-          <small>${escapeHtml(entry.searchedTerm)} · ${escapeHtml(entry.sourceName || "미분류")}</small>
+          <small>${escapeHtml(entry.searchedTerm)} · ${escapeHtml(entry.sourceName || "미분류")} · ${entry.videoUrl ? "영상" : entry.imageUrl ? "이미지" : "미디어 없음"}</small>
         </span>
       </button>
     </li>
@@ -58,11 +64,14 @@ function renderTimeline() {
   timeline.innerHTML = queue.map(renderEntry).join("");
   queueCount.textContent = `${queue.length}개`;
   timeline.querySelectorAll("button").forEach(button => {
-    button.addEventListener("click", () => showPreview(Number(button.dataset.index)));
+    button.addEventListener("click", () => {
+      isAutoPlaying = false;
+      showPreview(Number(button.dataset.index));
+    });
   });
 }
 
-function showPreview(index) {
+function showPreview(index, options = {}) {
   if (!queue.length) return;
 
   activeIndex = Math.max(0, Math.min(index, queue.length - 1));
@@ -78,35 +87,67 @@ function showPreview(index) {
         </div>
         <h2>${escapeHtml(entry.title)}</h2>
         <p>${escapeHtml(entry.description || "설명 데이터가 없습니다. 전문가 피드백에서 이 매칭이 적절한지 확인합니다.")}</p>
+        ${entry.resourceUrl ? `<a class="resourceLink" href="${escapeHtml(entry.resourceUrl)}" target="_blank" rel="noreferrer">원본 자료 열기</a>` : ""}
       </div>
     </article>
   `;
 
   const video = preview.querySelector("video");
   if (video) {
-    video.muted = false;
+    video.muted = true;
     video.play().catch(() => {
       setStatus("재생 대기", "warning");
     });
-    video.addEventListener("ended", () => showPreview(activeIndex + 1));
+    video.addEventListener("ended", () => {
+      if (isAutoPlaying && activeIndex < queue.length - 1) {
+        showPreview(activeIndex + 1, { autoplay: true });
+      } else if (activeIndex >= queue.length - 1) {
+        isAutoPlaying = false;
+        setStatus("재생 완료", "success");
+      }
+    });
+  } else if (options.autoplay && isAutoPlaying && activeIndex < queue.length - 1) {
+    window.setTimeout(() => showPreview(activeIndex + 1, { autoplay: true }), 1200);
   }
 
   renderTimeline();
 }
 
 function flattenResults(data) {
-  return data.results.flatMap(result => {
-    const videoFirst = [...(result.entries || [])].sort((a, b) => Number(Boolean(b.videoUrl)) - Number(Boolean(a.videoUrl)));
-    if (videoFirst.length) return videoFirst.slice(0, 2);
-    return [{
-      searchedTerm: result.term,
-      sourceName: "검색 실패",
-      title: result.term,
-      description: "검색 결과가 없습니다. 수어 전문가에게 대체 표현이나 문장 단위 표현이 필요한지 확인하세요.",
-      videoUrl: "",
-      imageUrl: ""
-    }];
-  });
+  const phraseResult = data.results.find(result => result.type === "phrase");
+  const phraseMedia = bestEntries(phraseResult).filter(entry => entry.videoUrl);
+  if (phraseMedia.length) return phraseMedia.slice(0, 1);
+
+  return data.results
+    .filter(result => result.type !== "phrase")
+    .flatMap(result => {
+      const entries = bestEntries(result);
+      if (entries.length) return entries.slice(0, 1);
+      return [{
+        searchedTerm: result.term,
+        sourceName: "검색 실패",
+        title: result.term,
+        description: "검색 결과가 없습니다. 수어 전문가에게 대체 표현이나 문장 단위 표현이 필요한지 확인하세요.",
+        videoUrl: "",
+        imageUrl: ""
+      }];
+    });
+}
+
+function bestEntries(result) {
+  if (!result) return [];
+
+  const mediaScore = entry =>
+    Number(Boolean(entry.videoUrl)) * 3 +
+    Number(Boolean(entry.imageUrl)) * 2 +
+    Number(Boolean(entry.resourceUrl));
+
+  const exactMatches = (result.entries || []).filter(entry =>
+    entry.title === result.term || entry.title.replace(/\s+/g, "") === result.term.replace(/\s+/g, "")
+  );
+  const pool = exactMatches.length ? exactMatches : (result.entries || []);
+
+  return [...pool].sort((a, b) => mediaScore(b) - mediaScore(a));
 }
 
 async function translate(text) {
@@ -121,9 +162,18 @@ async function translate(text) {
   return data;
 }
 
-prevButton.addEventListener("click", () => showPreview(activeIndex - 1));
-playButton.addEventListener("click", () => showPreview(activeIndex));
-nextButton.addEventListener("click", () => showPreview(activeIndex + 1));
+prevButton.addEventListener("click", () => {
+  isAutoPlaying = false;
+  showPreview(activeIndex - 1);
+});
+playButton.addEventListener("click", () => {
+  isAutoPlaying = true;
+  showPreview(activeIndex, { autoplay: true });
+});
+nextButton.addEventListener("click", () => {
+  isAutoPlaying = false;
+  showPreview(activeIndex + 1);
+});
 
 form.addEventListener("submit", async event => {
   event.preventDefault();
@@ -144,8 +194,22 @@ form.addEventListener("submit", async event => {
     const data = await translate(text);
     queue = flattenResults(data);
     renderTimeline();
-    showPreview(0);
-    setStatus(`${queue.length}개 영상 후보`, "success");
+    isAutoPlaying = true;
+    showPreview(0, { autoplay: true });
+
+    const hasRealConfig = data.results.some(result => result.configured);
+    const videoCount = queue.filter(entry => entry.videoUrl).length;
+    const imageCount = queue.filter(entry => entry.imageUrl).length;
+
+    if (!hasRealConfig) {
+      setStatus("API 키 필요", "warning");
+    } else if (videoCount) {
+      setStatus(`${videoCount}개 영상`, "success");
+    } else if (imageCount) {
+      setStatus(`${imageCount}개 이미지`, "warning");
+    } else {
+      setStatus("미디어 없음", "warning");
+    }
   } catch (error) {
     setStatus("오류", "danger");
     preview.innerHTML = `

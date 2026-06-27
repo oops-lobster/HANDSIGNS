@@ -9,10 +9,10 @@ The project is designed as an early prototype for expert feedback. It does not c
 The first version focuses on:
 
 - Taking a Korean sentence from the user.
-- Splitting the sentence into searchable words or phrases.
+- Using Gemini to rewrite the sentence into Korean sign-language API search terms.
 - Searching multiple Culture Portal sign-language API sources.
-- Prioritizing results that include video.
-- Displaying selected results in a simple playback queue.
+- Prioritizing results that include playable video URLs.
+- Automatically playing the resulting sign sequence.
 - Making mismatches visible so experts can review and suggest improvements.
 
 This is currently a **text-to-sign-video** prototype, not a camera-based sign recognition system.
@@ -38,6 +38,7 @@ Browser UI
   - Source labels
 
 Node API Proxy
+  - Uses Gemini to plan sign-language search terms
   - Keeps the Culture Portal API key off the frontend
   - Searches each configured sign-language API source
   - Normalizes different API response shapes
@@ -55,6 +56,7 @@ Culture Portal APIs
 Requirements:
 
 - Node.js 18 or newer
+- A Gemini API key
 - A Culture Portal API key
 
 Create a local environment file:
@@ -63,15 +65,14 @@ Create a local environment file:
 cp .env.example .env
 ```
 
-Fill in the API key and whichever API source URLs are available:
+Fill in the API keys:
 
 ```bash
+GEMINI_API_KEY=
 CULTURE_API_KEY=
-CULTURE_API_LIFE_URL=
-CULTURE_API_SPECIALIZED_URL=
-CULTURE_API_CULTURE_URL=
-CULTURE_API_INTEGRATED_URL=
 ```
+
+Culture Portal endpoint defaults are already included in `server.js`, but they can be overridden in `.env` if needed.
 
 Then run:
 
@@ -85,7 +86,7 @@ Open:
 http://127.0.0.1:3000
 ```
 
-If no API key or endpoint is configured, the app still runs in preview mode with placeholder entries.
+If `GEMINI_API_KEY` is missing, the app falls back to phrase and word splitting. If `CULTURE_API_KEY` is missing, the app runs in preview mode without real media.
 
 ## API Routes
 
@@ -112,7 +113,7 @@ Request body:
 }
 ```
 
-Returns searchable terms and normalized sign candidates for each term.
+Returns the Gemini or fallback search plan plus normalized sign candidates for each term.
 
 ## Deployment Notes
 
@@ -151,6 +152,7 @@ This MVP is meant to support conversations with sign-language experts. Useful fe
 - It does not generate new sign-language video.
 - It does not recognize sign language from camera input.
 - Word-by-word matching may produce unnatural or incorrect sign sequences.
+- Browser autoplay policies may require muted playback for fully automatic sequence playback.
 - Actual API field mapping may need adjustment after testing real Culture Portal responses.
 
 ## Roadmap
