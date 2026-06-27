@@ -1,0 +1,14 @@
+{
+  "name": "handsigns",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Korean text to sign-language content MVP using the Culture Portal sign API.",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "NODE_ENV=production node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
