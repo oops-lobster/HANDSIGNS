@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
+import { Readable } from "node:stream";
 
 const rootDir = process.cwd();
 const publicDir = join(rootDir, "public");
@@ -19,7 +20,8 @@ const mimeTypes = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
-  ".webp": "image/webp"
+  ".webp": "image/webp",
+  ".mp4": "video/mp4"
 };
 
 const defaultSources = [
@@ -412,14 +414,41 @@ function isImageUrl(value) {
   return /\.(png|jpe?g|gif|webp|bmp)(\?|#|$)/i.test(value || "");
 }
 
+function upgradeSldictUrl(value) {
+  if (!value) return "";
+
+  try {
+    const url = new URL(value);
+    if (url.protocol === "http:" && url.hostname === "sldict.korean.go.kr") {
+      url.protocol = "https:";
+      return url.href;
+    }
+    return value;
+  } catch {
+    return value;
+  }
+}
+
+function proxiedMediaUrl(value) {
+  if (!value) return "";
+
+  try {
+    const url = new URL(upgradeSldictUrl(value));
+    if (!["http:", "https:"].includes(url.protocol)) return value;
+    return `/api/media/video?url=${encodeURIComponent(url.href)}`;
+  } catch {
+    return value;
+  }
+}
+
 function normalizeEntry(entry, searchedTerm, source) {
   const resourceUrl = getFirstValue(entry, ["url", "resourceUrl", "referenceUrl", "identifier"]);
   const mediaUrl = getFirstValue(entry, ["subDescription"]);
   const explicitVideoUrl = getFirstValue(entry, ["videoUrl", "vodUrl", "movieUrl", "mp4Url", "signVideoUrl", "signVideo", "video", "mvurl", "fileUrl"]);
   const explicitImageUrl = getFirstValue(entry, ["imageUrl", "imgUrl", "thumbnail", "thumbUrl", "signImageUrl", "image", "imageObject", "posterUrl", "referenceIdentifier"]);
   const signImageUrl = firstCsvUrl(getFirstValue(entry, ["signImages"]));
-  const imageUrl = explicitImageUrl || signImageUrl || (isImageUrl(mediaUrl) ? mediaUrl : "") || (isImageUrl(resourceUrl) ? resourceUrl : "");
-  const videoUrl = explicitVideoUrl || (isVideoUrl(mediaUrl) ? mediaUrl : "") || (isVideoUrl(resourceUrl) ? resourceUrl : "");
+  const imageUrl = upgradeSldictUrl(explicitImageUrl || signImageUrl || (isImageUrl(mediaUrl) ? mediaUrl : "") || (isImageUrl(resourceUrl) ? resourceUrl : ""));
+  const rawVideoUrl = upgradeSldictUrl(explicitVideoUrl || (isVideoUrl(mediaUrl) ? mediaUrl : "") || (isVideoUrl(resourceUrl) ? resourceUrl : ""));
 
   return {
     searchedTerm,
@@ -427,10 +456,11 @@ function normalizeEntry(entry, searchedTerm, source) {
     sourceName: source.name,
     title: getFirstValue(entry, ["title", "word", "name", "signWord", "korName", "term", "subject", "krwd"]) || searchedTerm,
     description: getFirstValue(entry, ["signDescription", "description", "desc", "contents", "content", "meaning", "explanation", "sense", "dc", "subDescription"]),
-    videoUrl,
+    videoUrl: proxiedMediaUrl(rawVideoUrl),
+    rawVideoUrl,
     imageUrl,
     resourceUrl,
-    hasMedia: Boolean(videoUrl || imageUrl),
+    hasMedia: Boolean(rawVideoUrl || imageUrl),
     raw: entry
   };
 }
@@ -544,6 +574,11 @@ async function searchCultureApis(query) {
 
 async function handleApi(req, res, url) {
   try {
+    if (req.method === "GET" && url.pathname === "/api/media/video") {
+      await streamVideo(req, res, url);
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/api/signs/search") {
       const query = url.searchParams.get("q")?.trim();
       if (!query) return sendJson(res, 400, { error: "Missing q query parameter." });
@@ -569,6 +604,67 @@ async function handleApi(req, res, url) {
   } catch (error) {
     return sendJson(res, 500, { error: error.message });
   }
+}
+
+async function streamVideo(req, res, url) {
+  const target = url.searchParams.get("url");
+  if (!target) {
+    sendJson(res, 400, { error: "Missing media url." });
+    return;
+  }
+
+  let mediaUrl;
+  try {
+    mediaUrl = new URL(target);
+  } catch {
+    sendJson(res, 400, { error: "Invalid media url." });
+    return;
+  }
+
+  if (!["http:", "https:"].includes(mediaUrl.protocol)) {
+    sendJson(res, 400, { error: "Unsupported media url." });
+    return;
+  }
+
+  const headers = {
+    accept: "video/mp4,video/*;q=0.9,*/*;q=0.8",
+    "user-agent": "HANDSIGNS-MVP/1.0"
+  };
+
+  if (req.headers.range) {
+    headers.range = req.headers.range;
+  }
+
+  const response = await fetch(mediaUrl, { headers });
+
+  if (!response.ok && response.status !== 206) {
+    sendJson(res, response.status, { error: `Video request failed with ${response.status}.` });
+    return;
+  }
+
+  const responseHeaders = {
+    "content-type": response.headers.get("content-type") || "video/mp4",
+    "cache-control": "public, max-age=3600",
+    "accept-ranges": response.headers.get("accept-ranges") || "bytes"
+  };
+
+  for (const header of ["content-length", "content-range"]) {
+    const value = response.headers.get(header);
+    if (value) responseHeaders[header] = value;
+  }
+
+  res.writeHead(response.status, responseHeaders);
+
+  if (!response.body) {
+    res.end();
+    return;
+  }
+
+  const stream = Readable.fromWeb(response.body);
+  stream.on("error", () => {
+    if (!res.destroyed) res.destroy();
+  });
+  stream.pipe(res);
 }
 
 async function serveStatic(req, res, url) {

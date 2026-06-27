@@ -11,10 +11,13 @@ const plannerSource = document.querySelector("#plannerSource");
 const plannerTokens = document.querySelector("#plannerTokens");
 
 const apiBaseUrl = window.HANDSIGNS_API_BASE_URL || "";
+const videoLoadTimeoutMs = 6500;
+const imageFallbackDurationMs = 1500;
 
 let queue = [];
 let activeIndex = 0;
 let isAutoPlaying = false;
+let mediaTimer = null;
 
 function escapeHtml(value) {
   return String(value || "")
@@ -30,9 +33,15 @@ function setStatus(message, tone = "neutral") {
   statusEl.dataset.tone = tone;
 }
 
-function mediaFor(entry) {
-  if (entry.videoUrl) {
-    return `<video src="${escapeHtml(entry.videoUrl)}" controls playsinline autoplay muted preload="auto"></video>`;
+function mediaFor(entry, options = {}) {
+  const videoUrl = options.rawVideo ? entry.rawVideoUrl : entry.videoUrl;
+
+  if (videoUrl) {
+    return `
+      <div class="videoShell">
+        <video src="${escapeHtml(videoUrl)}" ${entry.imageUrl ? `poster="${escapeHtml(entry.imageUrl)}"` : ""} controls playsinline autoplay muted preload="metadata"></video>
+      </div>
+    `;
   }
 
   if (entry.imageUrl) {
@@ -45,6 +54,35 @@ function mediaFor(entry) {
       <span>표시할 영상/이미지 URL이 없습니다.</span>
     </div>
   `;
+}
+
+function fallbackMediaFor(entry) {
+  if (entry.imageUrl) {
+    return `
+      <div class="fallbackMedia">
+        <img src="${escapeHtml(entry.imageUrl)}" alt="${escapeHtml(entry.title)} 수어 이미지">
+        <span>영상 응답이 지연되어 이미지로 표시합니다.</span>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="noMedia">
+      <strong>${escapeHtml(entry.title.slice(0, 18))}</strong>
+      <span>영상 응답이 지연되어 다음 표현으로 넘어갑니다.</span>
+    </div>
+  `;
+}
+
+function clearMediaTimer() {
+  if (mediaTimer) {
+    window.clearTimeout(mediaTimer);
+    mediaTimer = null;
+  }
+}
+
+function hasRawVideoRetry(entry) {
+  return Boolean(entry.rawVideoUrl && entry.rawVideoUrl !== entry.videoUrl);
 }
 
 function renderEntry(entry, index) {
@@ -97,6 +135,7 @@ function showEmptyState(title, message) {
 function showPreview(index, options = {}) {
   if (!queue.length) return;
 
+  clearMediaTimer();
   activeIndex = Math.max(0, Math.min(index, queue.length - 1));
   const entry = queue[activeIndex];
 
@@ -117,23 +156,70 @@ function showPreview(index, options = {}) {
 
   const video = preview.querySelector("video");
   if (video) {
-    video.muted = true;
-    video.play().catch(() => {
-      setStatus("재생 대기", "warning");
-    });
-    video.addEventListener("ended", () => {
-      if (isAutoPlaying && activeIndex < queue.length - 1) {
-        showPreview(activeIndex + 1, { autoplay: true });
-      } else if (activeIndex >= queue.length - 1) {
-        isAutoPlaying = false;
-        setStatus("재생 완료", "success");
-      }
-    });
+    wireVideo(video, entry, preview.querySelector(".mediaFrame"), { allowRawRetry: true });
   } else if (options.autoplay && isAutoPlaying && activeIndex < queue.length - 1) {
     window.setTimeout(() => showPreview(activeIndex + 1, { autoplay: true }), 1200);
   }
 
   renderTimeline();
+}
+
+function wireVideo(video, entry, mediaFrame, options = {}) {
+  let isSettled = false;
+
+  const markReady = () => {
+    isSettled = true;
+    clearMediaTimer();
+  };
+
+  const moveToNext = () => {
+    if (isAutoPlaying && activeIndex < queue.length - 1) {
+      window.setTimeout(() => showPreview(activeIndex + 1, { autoplay: true }), imageFallbackDurationMs);
+    } else if (isAutoPlaying) {
+      isAutoPlaying = false;
+    }
+  };
+
+  const fallbackFromVideo = () => {
+    if (isSettled) return;
+    isSettled = true;
+    clearMediaTimer();
+
+    if (options.allowRawRetry && hasRawVideoRetry(entry) && mediaFrame) {
+      mediaFrame.innerHTML = mediaFor(entry, { rawVideo: true });
+      const rawVideo = mediaFrame.querySelector("video");
+      if (rawVideo) {
+        setStatus("영상 재시도", "warning");
+        wireVideo(rawVideo, entry, mediaFrame, { allowRawRetry: false });
+        return;
+      }
+    }
+
+    if (mediaFrame) mediaFrame.innerHTML = fallbackMediaFor(entry);
+    setStatus("이미지 표시", "warning");
+    moveToNext();
+  };
+
+  mediaTimer = window.setTimeout(fallbackFromVideo, videoLoadTimeoutMs);
+
+  video.addEventListener("loadeddata", markReady, { once: true });
+  video.addEventListener("canplay", markReady, { once: true });
+  video.addEventListener("playing", markReady, { once: true });
+  video.addEventListener("error", fallbackFromVideo, { once: true });
+
+  video.muted = true;
+  video.play().catch(() => {
+    setStatus("재생 대기", "warning");
+  });
+  video.addEventListener("ended", () => {
+    clearMediaTimer();
+    if (isAutoPlaying && activeIndex < queue.length - 1) {
+      showPreview(activeIndex + 1, { autoplay: true });
+    } else if (activeIndex >= queue.length - 1) {
+      isAutoPlaying = false;
+      setStatus("재생 완료", "success");
+    }
+  });
 }
 
 function flattenResults(data) {
