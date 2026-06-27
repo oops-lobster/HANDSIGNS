@@ -71,6 +71,15 @@ function renderTimeline() {
   });
 }
 
+function showEmptyState(title, message) {
+  preview.innerHTML = `
+    <div class="emptyState">
+      <strong>${escapeHtml(title)}</strong>
+      <span>${escapeHtml(message)}</span>
+    </div>
+  `;
+}
+
 function showPreview(index, options = {}) {
   if (!queue.length) return;
 
@@ -123,14 +132,7 @@ function flattenResults(data) {
     .flatMap(result => {
       const entries = bestEntries(result);
       if (entries.length) return entries.slice(0, 1);
-      return [{
-        searchedTerm: result.term,
-        sourceName: "검색 실패",
-        title: result.term,
-        description: "검색 결과가 없습니다. 수어 전문가에게 대체 표현이나 문장 단위 표현이 필요한지 확인하세요.",
-        videoUrl: "",
-        imageUrl: ""
-      }];
+      return [];
     });
 }
 
@@ -194,20 +196,31 @@ form.addEventListener("submit", async event => {
     const data = await translate(text);
     queue = flattenResults(data);
     renderTimeline();
-    isAutoPlaying = true;
-    showPreview(0, { autoplay: true });
 
     const hasRealConfig = data.results.some(result => result.configured);
     const videoCount = queue.filter(entry => entry.videoUrl).length;
     const imageCount = queue.filter(entry => entry.imageUrl).length;
-    const hasCultureAuthError = data.results.some(result =>
-      (result.entries || []).some(entry => String(entry.description || "").includes("401"))
-    );
+    const needsCultureKey = data.results.some(result => result.authRequired);
+
+    if (!queue.length) {
+      isAutoPlaying = false;
+      if (needsCultureKey) {
+        showEmptyState("수어 영상을 불러올 준비가 필요합니다.", "문화포털 serviceKey를 서버에 설정하면 자동으로 영상 재생 큐가 만들어집니다.");
+        setStatus("설정 필요", "warning");
+      } else {
+        showEmptyState("아직 매칭된 수어 영상이 없습니다.", "다른 표현으로 다시 입력하거나 전문가 피드백용 누락 항목으로 기록할 수 있습니다.");
+        setStatus("결과 없음", "warning");
+      }
+      return;
+    }
+
+    isAutoPlaying = true;
+    showPreview(0, { autoplay: true });
 
     if (!hasRealConfig) {
-      setStatus("API 키 필요", "warning");
-    } else if (hasCultureAuthError) {
-      setStatus("수어 API 인증 필요", "danger");
+      setStatus("설정 필요", "warning");
+    } else if (needsCultureKey) {
+      setStatus("설정 필요", "warning");
     } else if (videoCount) {
       setStatus(`${videoCount}개 영상`, "success");
     } else if (imageCount) {

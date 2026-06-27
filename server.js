@@ -456,6 +456,14 @@ async function searchOneSource(source, query, apiKey) {
   const pageSize = process.env.CULTURE_API_PAGE_SIZE || "5";
   if (pageSizeParam && pageSize) url.searchParams.set(pageSizeParam, pageSize);
 
+  const pageParam = process.env.CULTURE_API_PAGE_PARAM || "pageNo";
+  const page = process.env.CULTURE_API_PAGE || "1";
+  if (pageParam && page) url.searchParams.set(pageParam, page);
+
+  if (source.id === "integrated" && !url.searchParams.has("collectionDb")) {
+    url.searchParams.set("collectionDb", "");
+  }
+
   const formatParam = process.env.CULTURE_API_FORMAT_PARAM || "format";
   const format = process.env.CULTURE_API_FORMAT || "";
   if (formatParam && format) url.searchParams.set(formatParam, format);
@@ -468,7 +476,11 @@ async function searchOneSource(source, query, apiKey) {
 
   const text = await response.text();
   if (!response.ok) {
-    throw new Error(`${source.name} request failed with ${response.status}: ${text.slice(0, 300)}`);
+    const error = new Error(`${source.name} request failed with ${response.status}`);
+    error.status = response.status;
+    error.sourceName = source.name;
+    error.body = text.slice(0, 300);
+    throw error;
   }
 
   try {
@@ -499,24 +511,25 @@ async function searchCultureApis(query) {
     };
   }
 
+  const settled = await Promise.all(
+    sources.map(source => searchOneSource(source, query, apiKey)
+      .then(entries => ({ source, entries, error: null }))
+      .catch(error => ({ source, entries: [], error })))
+  );
+  const authErrors = settled.filter(result => result.error?.status === 401);
+  const otherErrors = settled.filter(result => result.error && result.error.status !== 401);
+  const entries = dedupeEntries(settled.flatMap(result => result.entries));
+
   return {
     configured: true,
     usesApiKey: Boolean(apiKey),
+    authRequired: authErrors.length === sources.length,
+    warnings: [
+      ...(authErrors.length ? ["Culture Portal API serviceKey is required."] : []),
+      ...otherErrors.map(result => `${result.source.name} search is temporarily unavailable.`)
+    ],
     sources: sources.map(({ id, name }) => ({ id, name })),
-    entries: dedupeEntries((await Promise.all(
-      sources.map(source => searchOneSource(source, query, apiKey).catch(error => [{
-        searchedTerm: query,
-        sourceId: source.id,
-        sourceName: source.name,
-        title: query,
-        description: error.message,
-        videoUrl: "",
-        imageUrl: "",
-        resourceUrl: "",
-        hasMedia: false,
-        raw: { error: error.message }
-      }]))
-    )).flat())
+    entries
   };
 }
 
