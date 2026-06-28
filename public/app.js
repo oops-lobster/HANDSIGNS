@@ -308,7 +308,11 @@ async function translate(text) {
   });
 
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "변환에 실패했습니다.");
+  if (!response.ok) {
+    const error = new Error(data.error || "변환에 실패했습니다.");
+    error.reason = data.reason;
+    throw error;
+  }
   return data;
 }
 
@@ -380,12 +384,19 @@ form.addEventListener("submit", async event => {
       setStatus("미디어 없음", "warning");
     }
   } catch (error) {
-    setStatus("오류", "danger");
-    preview.innerHTML = `
-      <div class="emptyState error">
-        <strong>${escapeHtml(error.message)}</strong>
-        <span>잠시 후 다시 시도하거나 서버 연결 상태를 확인해 주세요.</span>
-      </div>
-    `;
+    const quotaExhausted = error.reason === "quota_exhausted";
+    isAutoPlaying = false;
+    if (quotaExhausted) {
+      setStatus("사용 불가", "warning");
+      showEmptyState("지금은 수어 변환을 사용할 수 없습니다.", "Gemini 사용량이 모두 소진되어 변환 준비가 멈췄습니다. 새 API 키가 반영된 뒤 다시 시도해 주세요.");
+    } else {
+      setStatus("오류", "danger");
+      preview.innerHTML = `
+        <div class="emptyState error">
+          <strong>${escapeHtml(error.message)}</strong>
+          <span>잠시 후 다시 시도하거나 서버 연결 상태를 확인해 주세요.</span>
+        </div>
+      `;
+    }
   }
 });

@@ -234,13 +234,25 @@ function fallbackPlan(text) {
   };
 }
 
-function geminiUnavailablePlan(text, message) {
+function geminiUnavailablePlan(text, message, reason = "unavailable") {
   return {
     source: "gemini_unavailable",
+    reason,
     terms: [],
     originalText: normalizeSearchText(text),
     error: message
   };
+}
+
+function geminiUnavailableReason(message) {
+  const normalized = String(message || "").toLowerCase();
+  if (normalized.includes("429") || normalized.includes("quota") || normalized.includes("rate-limit") || normalized.includes("rate limit")) {
+    return "quota_exhausted";
+  }
+  if (normalized.includes("api key") || normalized.includes("permission") || normalized.includes("unauthenticated")) {
+    return "key_invalid";
+  }
+  return "unavailable";
 }
 
 function termsFromKslPlan(parsed, originalText) {
@@ -292,7 +304,7 @@ function extractJson(text) {
 
 async function planSignTerms(text) {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return geminiUnavailablePlan(text, "Gemini API key is not configured.");
+  if (!apiKey) return geminiUnavailablePlan(text, "Gemini API key is not configured.", "key_missing");
 
   const normalized = normalizeSearchText(text);
   if (!normalized) return fallbackPlan(text);
@@ -348,7 +360,7 @@ async function planSignTerms(text) {
       terms: normalizedTerms
     };
   } catch (error) {
-    return geminiUnavailablePlan(text, error.message);
+    return geminiUnavailablePlan(text, error.message, geminiUnavailableReason(error.message));
   }
 }
 
@@ -709,8 +721,12 @@ async function handleApi(req, res, url) {
       const originalText = normalizeSearchText(String(body.text || ""));
       const plan = await planSignTerms(originalText);
       if (plan.source === "gemini_unavailable") {
-        return sendJson(res, 503, {
-          error: "Gemini 분석을 사용할 수 없어 수어 변환을 진행할 수 없습니다.",
+        const isQuotaExhausted = plan.reason === "quota_exhausted";
+        return sendJson(res, isQuotaExhausted ? 429 : 503, {
+          error: isQuotaExhausted
+            ? "Gemini 사용량이 모두 소진되어 지금은 수어 변환을 진행할 수 없습니다."
+            : "Gemini 분석을 사용할 수 없어 수어 변환을 진행할 수 없습니다.",
+          reason: plan.reason,
           detail: plan.error,
           planner: plan
         });
