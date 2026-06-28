@@ -187,8 +187,10 @@ function showEmptyState(title, message) {
 function setSpeechState(message, active = false) {
   if (speechStatus) speechStatus.textContent = message;
   if (speechButton) {
-    speechButton.textContent = active ? "듣는 중" : "음성 입력";
+    const label = speechButton.querySelector(".speechButtonLabel");
+    if (label) label.textContent = active ? "입력 종료" : "음성 입력";
     speechButton.dataset.active = active ? "true" : "false";
+    speechButton.setAttribute("aria-label", active ? "음성 입력 종료" : "음성 입력 시작");
   }
 }
 
@@ -218,7 +220,7 @@ function setupSpeechRecognition() {
   recognition.addEventListener("start", () => {
     isListening = true;
     setStatus("듣는 중", "warning");
-    setSpeechState("말씀해 주세요. 인식이 끝나면 바로 수어 변환을 시작합니다.", true);
+    setSpeechState("듣는 중입니다. 다시 누르면 입력이 끝납니다.", true);
   });
 
   recognition.addEventListener("result", event => {

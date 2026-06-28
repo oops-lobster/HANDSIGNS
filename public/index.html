@@ -29,12 +29,20 @@
           <div class="inputRow">
             <div class="speechInput">
               <textarea id="textInput" name="text" rows="4" placeholder="예: 안녕하세요 반갑습니다"></textarea>
-              <div class="speechTools">
-                <button type="button" id="speechButton" class="speechButton">음성 입력</button>
-                <span id="speechStatus">마이크로 말하면 문장으로 입력됩니다.</span>
-              </div>
+              <span id="speechStatus" class="speechStatus">마이크를 누르면 음성이 문장으로 입력됩니다.</span>
             </div>
-            <button type="submit" class="submitButton">수어로 보기</button>
+            <div class="actionStack" aria-label="입력 방식">
+              <button type="button" id="speechButton" class="speechButton" aria-label="음성 입력 시작">
+                <svg class="buttonIcon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path>
+                  <path d="M5 11a7 7 0 0 0 14 0"></path>
+                  <path d="M12 18v3"></path>
+                  <path d="M8 21h8"></path>
+                </svg>
+                <span class="speechButtonLabel">음성 입력</span>
+              </button>
+              <button type="submit" class="submitButton">필담 변환</button>
+            </div>
           </div>
         </form>
 
@@ -76,13 +84,21 @@
         </section>
 
         <footer class="creatorBar" aria-label="프로젝트 정보">
-          <div>
+          <div class="creatorSignature">
             <span>made by</span>
             <strong>raymin</strong>
           </div>
-          <nav aria-label="관련 링크">
-            <a href="about.html" target="_blank" rel="noreferrer">왜 이걸 만들었나요?</a>
-            <a href="https://docs.google.com/document/d/1h4UrcmYzHf04h_NRk8UPjXEwhReKq4DQSA4WncuUZ7k/edit?usp=sharing" target="_blank" rel="noreferrer">만든 사람 소개</a>
+          <nav class="infoCards" aria-label="관련 링크">
+            <a href="about.html" target="_blank" rel="noreferrer">
+              <span>프로젝트 배경</span>
+              <strong>왜 이걸 만들었나요?</strong>
+              <small>수어잇다의 목표, 한계, 피드백 방향 보기</small>
+            </a>
+            <a href="https://docs.google.com/document/d/1h4UrcmYzHf04h_NRk8UPjXEwhReKq4DQSA4WncuUZ7k/edit?usp=sharing" target="_blank" rel="noreferrer">
+              <span>Creator</span>
+              <strong>만든 사람 소개</strong>
+              <small>raymin의 기록과 프로젝트 노트 보기</small>
+            </a>
           </nav>
         </footer>
       </section>
