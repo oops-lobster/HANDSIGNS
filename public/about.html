@@ -38,10 +38,100 @@
         </article>
       </section>
 
+      <section class="aboutSection" aria-label="서비스가 하는 일">
+        <div class="sectionHeading">
+          <p class="eyebrow">How it works</p>
+          <h2>한국어 문장을 바로 영상으로 틀기보다, 먼저 수어 표현 단위로 정리합니다.</h2>
+        </div>
+        <div class="flowList">
+          <article>
+            <strong>1. 한국어 입력</strong>
+            <p>사용자가 일상 문장을 입력합니다. 예: “안녕하세요”, “내 이름은 전민성입니다.”</p>
+          </article>
+          <article>
+            <strong>2. Gemini 의미 분석</strong>
+            <p>조사와 어미를 줄이고, 수어사전에서 찾을 수 있는 표준 표제어와 지문자 자모로 문장을 재구성합니다.</p>
+          </article>
+          <article>
+            <strong>3. 수어 API 검색</strong>
+            <p>분석된 토큰을 국립국어원 한국수어사전 기반 공공 API에서 찾아 영상 후보로 연결합니다.</p>
+          </article>
+          <article>
+            <strong>4. 순서대로 자동 재생</strong>
+            <p>찾은 영상을 수어 문장 구조 순서대로 이어서 재생해, 사용자가 직접 링크를 누르지 않아도 흐름을 볼 수 있게 합니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="aboutSection" aria-label="현재 가능한 범위와 한계">
+        <div class="sectionHeading">
+          <p class="eyebrow">MVP Scope</p>
+          <h2>지금은 “기초 대화 검증”에 집중합니다.</h2>
+        </div>
+        <div class="splitPanel">
+          <article>
+            <strong>현재 잘 맞추고 싶은 것</strong>
+            <ul>
+              <li>인사, 자기소개, 이름 묻기 같은 기초 일상 대화</li>
+              <li>수어사전에 있는 표준 단어 영상 자동 연결</li>
+              <li>사람 이름처럼 사전에 없는 고유명사의 지문자 자모 분해</li>
+              <li>전문가가 피드백하기 쉬운 수어 문장 구조 표시</li>
+            </ul>
+          </article>
+          <article>
+            <strong>아직 조심해야 하는 것</strong>
+            <ul>
+              <li>자연스러운 수어 통역 전체를 대체하지 않습니다.</li>
+              <li>표정, 속도, 공간 활용은 영상 조합만으로 완전히 표현하기 어렵습니다.</li>
+              <li>사전에 없는 표현은 누락되거나 자모로 분해될 수 있습니다.</li>
+              <li>Gemini와 공공 API의 응답 상태에 따라 결과가 달라질 수 있습니다.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="aboutSection" aria-label="데이터와 기술">
+        <div class="sectionHeading">
+          <p class="eyebrow">Data & Technology</p>
+          <h2>AI는 문장을 정리하고, 영상은 공공 수어 자료에서 가져옵니다.</h2>
+        </div>
+        <div class="sourceList">
+          <a href="https://www.culture.go.kr/data/openapi/openapiView.do?id=557&keyword=%ED%86%B5%ED%95%A9%20%EC%88%98%EC%96%B4&searchField=all&gubun=A" target="_blank" rel="noreferrer">
+            <span>통합 수어 정보</span>
+            <strong>국립국어원 통합 수어 자료 검색</strong>
+          </a>
+          <a href="https://www.culture.go.kr/data/openapi/openapiView.do?id=367&keyword=%EC%9D%BC%EC%83%81%EC%83%9D%ED%99%9C%EC%88%98%EC%96%B4&searchField=all&gubun=A" target="_blank" rel="noreferrer">
+            <span>일상생활 수어</span>
+            <strong>기초 대화와 생활 표현 우선 검색</strong>
+          </a>
+          <a href="https://www.culture.go.kr/data/openapi/openapiView.do?id=368&keyword=%EC%A0%84%EB%AC%B8%EC%9A%A9%EC%96%B4%EC%88%98%EC%96%B4&searchField=all&gubun=A" target="_blank" rel="noreferrer">
+            <span>전문용어 수어</span>
+            <strong>분야별 전문 표현 보조 검색</strong>
+          </a>
+          <a href="https://www.culture.go.kr/data/openapi/openapiView.do?id=369&keyword=%EB%AC%B8%ED%99%94%EC%A0%95%EB%B3%B4%EC%88%98%EC%96%B4&searchField=all&gubun=A" target="_blank" rel="noreferrer">
+            <span>문화정보 수어</span>
+            <strong>문화 관련 표현과 원천 자료 보조 검색</strong>
+          </a>
+        </div>
+      </section>
+
+      <section class="aboutSection" aria-label="피드백 요청">
+        <div class="sectionHeading">
+          <p class="eyebrow">Feedback</p>
+          <h2>수어 전문가와 농인 당사자에게 묻고 싶은 것들</h2>
+        </div>
+        <div class="questionGrid">
+          <article>입력 문장이 수어 문장 구조로 자연스럽게 나뉘었나요?</article>
+          <article>영상이 이어지는 순서가 의미 전달에 도움이 되나요?</article>
+          <article>지문자 처리 방식이 이름 전달에 적절한가요?</article>
+          <article>농인 사용자가 보기에 어색하거나 오해될 표현은 무엇인가요?</article>
+        </div>
+      </section>
+
       <section class="aboutLinks" aria-label="더 알아보기">
         <div>
           <strong>수어 자료를 더 보고 싶다면</strong>
-          <p>국립국어원 한국수어사전에서 표준 수어 표현과 원본 영상을 확인할 수 있습니다.</p>
+          <p>국립국어원 한국수어사전에서 표준 수어 표현과 원본 영상을 확인할 수 있습니다. 이 프로젝트의 제작 노트는 메인 화면의 “만든 사람 소개”에서 볼 수 있습니다.</p>
         </div>
         <a href="https://sldict.korean.go.kr/front/main/main.do" target="_blank" rel="noreferrer">한국수어사전 열기</a>
       </section>
