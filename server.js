@@ -97,11 +97,11 @@ const kslPreprocessPrompt = `# Role
 
 4. 고유명사 및 인명 자문자 자모 분해 규칙 (Fingerspelling Phoneme Rule)
    - [가장 중요] 한국수어사전에 없는 인명(사람 이름), 브랜드명 등은 절대 단어나 글자 단위로 묶지 말고, '초성, 중성, 종성(자음과 모음)' 단위로 완전히 해체해야 합니다.
-   - 분해된 모든 자음과 모음 토큰 앞에는 "FS_" 접두어를 붙이세요. (쌍자음/쌍모음은 그대로 유지)
+   - 분해된 자음과 모음은 한국수어사전의 지문자 표제어와 바로 매칭되도록 "FS_" 접두어 없이 자모만 출력하세요. (쌍자음/쌍모음은 그대로 유지)
    - 예시 (전민성):
-     - '전' -> ㅈ, ㅓ, ㄴ -> "FS_ㅈ", "FS_ㅓ", "FS_ㄴ"
-     - '민' -> ㅁ, ㅣ, ㄴ -> "FS_ㅁ", "FS_ㅣ", "FS_ㄴ"
-     - '성' -> ㅅ, ㅓ, ㅇ -> "FS_ㅅ", "FS_ㅓ", "FS_ㅇ"
+     - '전' -> ㅈ, ㅓ, ㄴ -> "ㅈ", "ㅓ", "ㄴ"
+     - '민' -> ㅁ, ㅣ, ㄴ -> "ㅁ", "ㅣ", "ㄴ"
+     - '성' -> ㅅ, ㅓ, ㅇ -> "ㅅ", "ㅓ", "ㅇ"
 
 5. Non-Manual Signals (비수지 신호/표정 토큰화)
    - 문맥에서 느껴지는 핵심 감정이나 의문/부정 등의 어조를 파악하여 facial_expression_token 필드에 상수로 출력하세요.
@@ -122,7 +122,7 @@ Output:
 {
   "status": "success",
   "original_text": "내 이름은 전민성입니다.",
-  "ksl_syntax_order": ["나", "이름", "FS_ㅈ", "FS_ㅓ", "FS_ㄴ", "FS_ㅁ", "FS_ㅣ", "FS_ㄴ", "FS_ㅅ", "FS_ㅓ", "FS_ㅇ"],
+  "ksl_syntax_order": ["나", "이름", "ㅈ", "ㅓ", "ㄴ", "ㅁ", "ㅣ", "ㄴ", "ㅅ", "ㅓ", "ㅇ"],
   "facial_expression_token": "NEUTRAL"
 }
 
@@ -251,22 +251,31 @@ function termsFromKslPlan(parsed, originalText) {
     .map(token => token.trim())
     .filter(Boolean);
   const apiSearchTerms = orderedTerms
-    .filter(token => !token.startsWith("FS_"))
+    .map(token => token.startsWith("FS_") ? token.slice(3) : token)
     .filter(token => !nonLexicalTokens.has(token))
     .map(token => normalizeSearchText(token))
     .filter(Boolean);
+  const kslSearchItems = apiSearchTerms.flatMap(term => {
+    const parts = term.split(/\s+/).filter(part => part && part !== term);
+    return [
+      { term, type: "ksl" },
+      ...parts.map(part => ({ term: part, type: "ksl_part" }))
+    ];
+  });
 
-  const merged = [
-    ...apiSearchTerms.map(term => ({ term, type: "ksl" })),
-    ...buildSearchTerms(originalText)
-  ];
+  const merged = kslSearchItems;
 
   const seen = new Set();
   return merged.filter(item => {
-    if (!item.term || seen.has(item.term)) return false;
+    if (!item.term) return false;
+    if (item.type === "ksl" || item.type === "ksl_part") {
+      seen.add(item.term);
+      return true;
+    }
+    if (seen.has(item.term)) return false;
     seen.add(item.term);
     return true;
-  }).slice(0, 12);
+  }).slice(0, 32);
 }
 
 function extractJson(text) {
@@ -532,7 +541,7 @@ async function searchOneSource(source, query) {
   url.searchParams.set(process.env.CULTURE_API_QUERY_PARAM || "keyword", query);
 
   const pageSizeParam = process.env.CULTURE_API_PAGE_SIZE_PARAM || "numOfRows";
-  const pageSize = process.env.CULTURE_API_PAGE_SIZE || "5";
+  const pageSize = process.env.CULTURE_API_PAGE_SIZE || "20";
   if (pageSizeParam && pageSize) url.searchParams.set(pageSizeParam, pageSize);
 
   const pageParam = process.env.CULTURE_API_PAGE_PARAM || "pageNo";
@@ -629,6 +638,18 @@ function relevanceScore(entry, query) {
   return 0;
 }
 
+function isSingleHangulSyllable(query) {
+  return /^[가-힣]$/.test(compactSearchText(query));
+}
+
+function filterEntriesForQuery(entries, query) {
+  if (!isSingleHangulSyllable(query)) return entries;
+  const term = compactSearchText(query);
+  return entries.filter(entry =>
+    compactSearchText(entry.title) === term || titleParts(entry.title).includes(term)
+  );
+}
+
 function sortEntries(entries, query) {
   return [...entries].sort((a, b) =>
     sourceRank(a) - sourceRank(b) ||
@@ -655,7 +676,7 @@ async function searchCultureApis(query) {
   );
   const authErrors = settled.filter(result => result.error?.status === 401);
   const otherErrors = settled.filter(result => result.error && result.error.status !== 401);
-  const entries = sortEntries(dedupeEntries(settled.flatMap(result => result.entries)), query);
+  const entries = sortEntries(filterEntriesForQuery(dedupeEntries(settled.flatMap(result => result.entries)), query), query);
 
   return {
     configured: true,
