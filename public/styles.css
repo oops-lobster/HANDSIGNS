@@ -164,6 +164,11 @@ h1 {
   gap: 12px;
 }
 
+.speechInput {
+  display: grid;
+  gap: 10px;
+}
+
 textarea {
   width: 100%;
   resize: vertical;
@@ -183,7 +188,51 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgb(15 118 110 / 15%);
 }
 
-.inputRow button {
+.speechTools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+}
+
+.speechTools span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.speechButton {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgb(15 118 110 / 24%);
+  border-radius: 8px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.speechButton:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.speechButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.speechButton[data-active="true"] {
+  border-color: rgb(154 103 0 / 34%);
+  color: var(--warn);
+  background: #fff4dc;
+}
+
+.submitButton {
   min-height: 96px;
   padding: 0 12px;
   border: 0;
@@ -197,7 +246,7 @@ textarea:focus {
   box-shadow: 0 14px 28px rgb(12 95 88 / 23%);
 }
 
-.inputRow button:hover {
+.submitButton:hover {
   filter: brightness(0.97);
   transform: translateY(-1px);
 }
@@ -831,8 +880,17 @@ textarea:focus {
     padding: 14px;
   }
 
-  .inputRow button {
+  .submitButton {
     min-height: 52px;
+  }
+
+  .speechTools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .speechButton {
+    width: 100%;
   }
 
   textarea {

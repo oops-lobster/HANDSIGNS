@@ -1,5 +1,7 @@
 const form = document.querySelector("#translateForm");
 const input = document.querySelector("#textInput");
+const speechButton = document.querySelector("#speechButton");
+const speechStatus = document.querySelector("#speechStatus");
 const statusEl = document.querySelector("#status");
 const preview = document.querySelector("#preview");
 const timeline = document.querySelector("#timeline");
@@ -24,6 +26,9 @@ let queue = [];
 let activeIndex = 0;
 let isAutoPlaying = false;
 let mediaTimer = null;
+let recognition = null;
+let isListening = false;
+let shouldSubmitAfterSpeech = false;
 
 function escapeHtml(value) {
   return String(value || "")
@@ -178,6 +183,101 @@ function showEmptyState(title, message) {
     </div>
   `;
 }
+
+function setSpeechState(message, active = false) {
+  if (speechStatus) speechStatus.textContent = message;
+  if (speechButton) {
+    speechButton.textContent = active ? "듣는 중" : "음성 입력";
+    speechButton.dataset.active = active ? "true" : "false";
+  }
+}
+
+function appendRecognizedText(text) {
+  const normalized = text.trim();
+  if (!normalized) return;
+
+  input.value = normalized;
+  input.focus();
+}
+
+function setupSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!speechButton || !speechStatus) return;
+
+  if (!SpeechRecognition) {
+    speechButton.disabled = true;
+    speechStatus.textContent = "이 브라우저는 음성 입력을 지원하지 않습니다.";
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = "ko-KR";
+  recognition.interimResults = true;
+  recognition.continuous = false;
+
+  recognition.addEventListener("start", () => {
+    isListening = true;
+    setStatus("듣는 중", "warning");
+    setSpeechState("말씀해 주세요. 인식이 끝나면 바로 수어 변환을 시작합니다.", true);
+  });
+
+  recognition.addEventListener("result", event => {
+    const transcript = Array.from(event.results)
+      .map(result => result[0]?.transcript || "")
+      .join("")
+      .trim();
+
+    if (transcript) {
+      input.value = transcript;
+      speechStatus.textContent = transcript;
+    }
+
+    const hasFinalResult = Array.from(event.results).some(result => result.isFinal);
+    if (hasFinalResult && transcript) {
+      appendRecognizedText(transcript);
+      shouldSubmitAfterSpeech = true;
+    }
+  });
+
+  recognition.addEventListener("error", event => {
+    isListening = false;
+    const message = event.error === "not-allowed"
+      ? "마이크 권한이 필요합니다."
+      : "음성을 인식하지 못했습니다. 다시 시도해 주세요.";
+    setSpeechState(message);
+    setStatus("음성 실패", "warning");
+  });
+
+  recognition.addEventListener("end", () => {
+    isListening = false;
+    const shouldSubmit = shouldSubmitAfterSpeech;
+    shouldSubmitAfterSpeech = false;
+    setSpeechState(shouldSubmit ? "음성 인식 완료. 수어로 변환합니다." : "음성 입력이 끝났습니다.");
+
+    if (shouldSubmit) {
+      form.requestSubmit();
+    }
+  });
+
+  speechButton.addEventListener("click", () => {
+    if (!recognition) return;
+
+    if (isListening) {
+      shouldSubmitAfterSpeech = false;
+      recognition.stop();
+      setSpeechState("음성 입력을 멈췄습니다.");
+      return;
+    }
+
+    try {
+      recognition.start();
+    } catch {
+      setSpeechState("이미 음성을 듣고 있습니다.", true);
+    }
+  });
+}
+
+setupSpeechRecognition();
 
 function showPreview(index, options = {}) {
   if (!queue.length) return;
