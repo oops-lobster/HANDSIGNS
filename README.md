@@ -93,7 +93,7 @@ Open:
 http://127.0.0.1:3000
 ```
 
-If `GEMINI_API_KEY` is missing or quota-limited, the app falls back to phrase and word splitting. If sign API keys are missing, the app runs in preview mode without real media.
+If `GEMINI_API_KEY` is missing, invalid, or quota-limited, the app stops translation and returns an unavailable state instead of falling back to basic splitting. This keeps the MVP from showing misleading sign results when semantic parsing is unavailable. If sign API keys are missing, the app runs in preview mode without real media.
 
 ## API Routes
 
