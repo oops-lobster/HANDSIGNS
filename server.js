@@ -212,7 +212,10 @@ function buildSearchTerms(text) {
   if (normalized) terms.push({ term: normalized, type: "phrase" });
   for (const word of words) {
     const stripped = stripTrailingParticle(word);
-    if (stripped && stripped !== word) terms.push({ term: stripped, type: "word" });
+    if (stripped && stripped !== word) {
+      terms.push({ term: stripped, type: "word" });
+      continue;
+    }
     if (word !== normalized) terms.push({ term: word, type: "word" });
   }
 
@@ -228,6 +231,15 @@ function fallbackPlan(text) {
   return {
     source: "fallback",
     terms: buildSearchTerms(text)
+  };
+}
+
+function geminiUnavailablePlan(text, message) {
+  return {
+    source: "gemini_unavailable",
+    terms: [],
+    originalText: normalizeSearchText(text),
+    error: message
   };
 }
 
@@ -271,7 +283,7 @@ function extractJson(text) {
 
 async function planSignTerms(text) {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return fallbackPlan(text);
+  if (!apiKey) return geminiUnavailablePlan(text, "Gemini API key is not configured.");
 
   const normalized = normalizeSearchText(text);
   if (!normalized) return fallbackPlan(text);
@@ -316,7 +328,9 @@ async function planSignTerms(text) {
     }
 
     const normalizedTerms = termsFromKslPlan(parsed, text);
-    if (!normalizedTerms.length) return fallbackPlan(text);
+    if (!normalizedTerms.length) {
+      throw new Error("Gemini did not return searchable KSL tokens.");
+    }
 
     return {
       source: "gemini",
@@ -325,10 +339,7 @@ async function planSignTerms(text) {
       terms: normalizedTerms
     };
   } catch (error) {
-    return {
-      ...fallbackPlan(text),
-      error: error.message
-    };
+    return geminiUnavailablePlan(text, error.message);
   }
 }
 
@@ -676,6 +687,13 @@ async function handleApi(req, res, url) {
       const body = JSON.parse((await readBody(req)) || "{}");
       const originalText = normalizeSearchText(String(body.text || ""));
       const plan = await planSignTerms(originalText);
+      if (plan.source === "gemini_unavailable") {
+        return sendJson(res, 503, {
+          error: "Gemini 분석을 사용할 수 없어 수어 변환을 진행할 수 없습니다.",
+          detail: plan.error,
+          planner: plan
+        });
+      }
       const searchItems = plan.terms;
       const terms = searchItems.map(item => item.term);
       if (!terms.length) return sendJson(res, 400, { error: "Missing text." });
