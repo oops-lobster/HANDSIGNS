@@ -628,43 +628,6 @@ textarea:focus {
   line-height: 1.65;
 }
 
-.sourceList {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.sourceList a {
-  min-height: 116px;
-  padding: 20px;
-  border: 1px solid rgb(15 118 110 / 24%);
-  border-radius: 8px;
-  color: var(--ink);
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 92%), rgb(237 248 246 / 86%));
-  text-decoration: none;
-  box-shadow: var(--shadow-soft);
-}
-
-.sourceList a:hover {
-  border-color: var(--accent);
-  transform: translateY(-1px);
-}
-
-.sourceList span {
-  display: block;
-  margin-bottom: 9px;
-  color: var(--accent-strong);
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.sourceList strong {
-  display: block;
-  font-size: 18px;
-  line-height: 1.35;
-}
-
 .questionGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -677,6 +640,39 @@ textarea:focus {
   color: var(--ink);
   font-weight: 850;
   line-height: 1.55;
+}
+
+.feedbackContact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+  min-height: 76px;
+  padding: 18px 20px;
+  border: 1px solid rgb(201 139 34 / 28%);
+  border-radius: 8px;
+  color: var(--ink);
+  background:
+    linear-gradient(180deg, rgb(255 249 237 / 92%), rgb(255 255 255 / 88%));
+  text-decoration: none;
+  box-shadow: var(--shadow-soft);
+}
+
+.feedbackContact:hover {
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+
+.feedbackContact span {
+  color: var(--warn);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.feedbackContact strong {
+  font-size: 18px;
+  line-height: 1.35;
 }
 
 .aboutLinks {
@@ -864,7 +860,6 @@ textarea:focus {
   .aboutGrid,
   .flowList,
   .splitPanel,
-  .sourceList,
   .questionGrid {
     grid-template-columns: 1fr;
   }
@@ -922,8 +917,14 @@ textarea:focus {
 
   .creatorBar nav,
   .creatorBar a,
-  .aboutLinks a {
+  .aboutLinks a,
+  .feedbackContact {
     width: 100%;
+  }
+
+  .feedbackContact {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .aboutTitle {
