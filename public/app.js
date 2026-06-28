@@ -13,6 +13,12 @@ const plannerTokens = document.querySelector("#plannerTokens");
 const apiBaseUrl = window.HANDSIGNS_API_BASE_URL || "";
 const videoLoadTimeoutMs = 6500;
 const imageFallbackDurationMs = 1500;
+const sourcePriority = {
+  life: 0,
+  integrated: 1,
+  specialized: 2,
+  culture: 3
+};
 
 let queue = [];
 let activeIndex = 0;
@@ -26,6 +32,47 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function normalizeSearchText(value) {
+  return String(value || "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function compactSearchText(value) {
+  return normalizeSearchText(value).replace(/\s+/g, "");
+}
+
+function sourceRank(entry) {
+  return sourcePriority[entry?.sourceId] ?? 99;
+}
+
+function mediaScore(entry) {
+  return Number(Boolean(entry.videoUrl)) * 3 +
+    Number(Boolean(entry.imageUrl)) * 2 +
+    Number(Boolean(entry.resourceUrl));
+}
+
+function titleParts(title) {
+  return String(title || "")
+    .split(/[,/|·ㆍ]/)
+    .map(part => compactSearchText(part))
+    .filter(Boolean);
+}
+
+function relevanceScore(entry, term) {
+  const normalizedTerm = compactSearchText(term);
+  const title = compactSearchText(entry.title);
+  const parts = titleParts(entry.title);
+  if (!normalizedTerm || !title) return 0;
+  if (title === normalizedTerm) return 100;
+  if (parts.includes(normalizedTerm)) return 90;
+  if (title.startsWith(normalizedTerm)) return 70;
+  if (title.includes(normalizedTerm)) return 45;
+  if (parts.some(part => normalizedTerm.includes(part))) return 25;
+  return 0;
 }
 
 function setStatus(message, tone = "neutral") {
@@ -239,17 +286,18 @@ function flattenResults(data) {
 function bestEntries(result) {
   if (!result) return [];
 
-  const mediaScore = entry =>
-    Number(Boolean(entry.videoUrl)) * 3 +
-    Number(Boolean(entry.imageUrl)) * 2 +
-    Number(Boolean(entry.resourceUrl));
-
   const exactMatches = (result.entries || []).filter(entry =>
-    entry.title === result.term || entry.title.replace(/\s+/g, "") === result.term.replace(/\s+/g, "")
+    compactSearchText(entry.title) === compactSearchText(result.term) ||
+    titleParts(entry.title).includes(compactSearchText(result.term))
   );
   const pool = exactMatches.length ? exactMatches : (result.entries || []);
 
-  return [...pool].sort((a, b) => mediaScore(b) - mediaScore(a));
+  return [...pool].sort((a, b) =>
+    sourceRank(a) - sourceRank(b) ||
+    relevanceScore(b, result.term) - relevanceScore(a, result.term) ||
+    mediaScore(b) - mediaScore(a) ||
+    String(a.title || "").localeCompare(String(b.title || ""), "ko")
+  );
 }
 
 async function translate(text) {

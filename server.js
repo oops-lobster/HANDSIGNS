@@ -34,6 +34,13 @@ const defaultSources = [
     defaultUrl: "https://api.kcisa.kr/openapi/service/rest/meta13/getCTE01701"
   },
   {
+    id: "integrated",
+    name: "통합 수어",
+    keyEnv: "CULTURE_API_INTEGRATED_KEY",
+    env: "CULTURE_API_INTEGRATED_URL",
+    defaultUrl: "https://api.kcisa.kr/API_CNV_054/request"
+  },
+  {
     id: "specialized",
     name: "전문용어수어",
     keyEnv: "CULTURE_API_SPECIALIZED_KEY",
@@ -46,49 +53,58 @@ const defaultSources = [
     keyEnv: "CULTURE_API_CULTURE_KEY",
     env: "CULTURE_API_CULTURE_URL",
     defaultUrl: "https://api.kcisa.kr/openapi/service/rest/meta13/getCTE01703"
-  },
-  {
-    id: "integrated",
-    name: "통합 수어",
-    keyEnv: "CULTURE_API_INTEGRATED_KEY",
-    env: "CULTURE_API_INTEGRATED_URL",
-    defaultUrl: "https://api.kcisa.kr/API_CNV_054/request"
   }
 ];
 
-const kslPreprocessPrompt = `# Role
-당신은 일반 한국어 문장을 국립국어원 한국수어사전(sldict.korean.go.kr)에 등록된 표준 단어들의 조합으로 변환하는 '수어 의미 번역 및 토큰화 전문가'입니다.
+const sourcePriority = {
+  life: 0,
+  integrated: 1,
+  specialized: 2,
+  culture: 3
+};
 
-# Philosophy & Core Objective (가장 중요)
-이 프롬프트의 목적은 수어사전의 단어들을 조합하여, '농인(수어 사용자)에게 왜곡 없이 정확한 의미를 전달하는 것'입니다. 한국어 문법이나 조사에 얽매이지 말고, 농인이 직관적으로 상황과 개념을 이해할 수 있도록 수어의 시각적·공간적 흐름에 맞춰 단어를 분해하고 재조합해야 합니다.
+const kslPreprocessPrompt = `# Role
+당신은 일반 한국어 문장을 국립국어원 한국수어사전(sldict.korean.go.kr)에 등록된 표준 단어들의 조합으로 변환하는 '최첨단 수어 의미 번역 및 토큰화 API'입니다. 후속 시스템은 문맥 파악 능력이 전혀 없으므로, 당신이 이 단계에서 완벽한 독해와 자모 분해를 끝내야 합니다.
+
+# Philosophy & Core Objective
+이 프롬프트의 최우선 목적은 수어사전의 단어들을 조합하여, '농인(수어 사용자)에게 왜곡 없이 정확한 의미를 전달하는 것'입니다. 한국어 문법이나 조사에 얽매이지 말고, 농인이 직관적으로 상황과 영상 이미지를 이해할 수 있도록 수어의 시각적·공간적 흐름에 맞춰 단어를 분해하고 재조합하세요.
 
 # Output Format Specification
-- Respond ONLY with a valid JSON object. No markdown, no explanations.
+- Respond ONLY with a valid JSON object. Do NOT include markdown code blocks or any additional conversational text.
 {
   "status": "success",
   "original_text": "string",
   "ksl_syntax_order": ["string", "string", ...],
-  "facial_expression_token": "SURPRISE" | "QUESTION" | "NEGATION" | "ANGRY" | "NEUTRAL"
+  "facial_expression_token": "SURPRISE" | "QUESTION" | "QUESTION_WHY" | "NEGATION" | "ANGRY" | "NEUTRAL"
 }
 
-# Meaning-Centric Tokenization Rules
+# Core Translation & Tokenization Rules
 
 1. 수어사전 표준 표제어 기반 분해 (Exact Dictionary Matching)
    - 출력되는 모든 단어는 한국수어사전에 존재하는 표준어 형태여야 뒤쪽 시스템에서 모션 매핑이 가능합니다.
-   - 한국어의 복잡한 문장 표현(어미, 접사)을 수어사전에 존재하는 가장 직관적인 핵심 개념 단어로 환원하세요.
-   - 예: "마르셨네요" -> 수건이 건조되는 이미지이므로 수어사전 표제어인 "마르다(건조)" 추출.
+   - 한국어의 복잡한 문장 표현(어미, 접사)을 수어사전에 존재하는 가장 직관적인 핵심 개념 단어(기본형)로 환원하세요.
+   - 예: "마르셨네요" -> 수건이 건조되는 상황이므로 수어사전 표제어인 "마르다(건조)" 추출.
 
 2. 농인 중심의 문맥 및 동음이의어 판별
-   - 농인이 수어 모션을 보았을 때 엉뚱한 뜻으로 오해하지 않도록 문맥을 완벽히 파악하여 괄호 안에 의미를 명시하세요.
-   - 예: "차가 막히다" -> "차(자동차)" + "막히다(정체)" / "차가 차갑다" -> "차(음료)" + "차갑다"
+   - 농인이 수어 모션을 보았을 때 엉뚱한 뜻으로 오해하지 않도록 문맥을 완벽히 파악하여 괄호 안에 의미 구분을 명시하세요.
+   - 예: "차가 막히다" -> "차(자동차)", "막히다(정체)" / "차가 차갑다" -> "차(음료)", "차갑다"
+   - 예: "살이 마르다" -> "마르다(체격)" / "빨래가 마르다" -> "마르다(건조)"
 
-3. 구어체 미사여구 제거 및 시각적 재배치
-   - 농인에게 의미 전달을 방해하거나 수어 단어가 없는 감탄사, 사물 존칭("어머", "~시~")은 과감히 제거합니다.
+3. 구어체 미사여구 제거 및 시각적 재배치 (수어 어순)
+   - 의미 전달을 방해하거나 수어 단어가 없는 감탄사, 사물 존칭("어머", "아이고", "~시~")은 과감히 제거합니다.
    - 수어의 의미 전달 효율을 극대화하기 위해 [시간] -> [장소] -> [주어] -> [목적어] -> [동사/형용사] 순으로 단어를 배치합니다.
-   - 부정어("안", "못", "아니다")와 의문사("왜", "무엇")는 농인이 문장의 결론을 확실히 인지할 수 있도록 항상 문장의 맨 뒤로 보냅니다.
+   - 부정어("안", "못", "아니다")와 의문사("왜", "무엇", "어디")는 농인이 결론을 확실히 인지할 수 있도록 항상 문장의 맨 뒤로 보냅니다.
 
-4. 고유명사 안전 장치 (지문자 처리)
-   - 수어사전에 단어가 존재할 수 없는 인명(예: 전민성), 브랜드명 등은 자의적으로 단어를 엮어 오역하지 말고, 글자 단위로 쪼개어 "FS_" 접두어를 붙이세요. (예: ["FS_전", "FS_민", "FS_성"])
+4. 고유명사 및 인명 자문자 자모 분해 규칙 (Fingerspelling Phoneme Rule)
+   - [가장 중요] 한국수어사전에 없는 인명(사람 이름), 브랜드명 등은 절대 단어나 글자 단위로 묶지 말고, '초성, 중성, 종성(자음과 모음)' 단위로 완전히 해체해야 합니다.
+   - 분해된 모든 자음과 모음 토큰 앞에는 "FS_" 접두어를 붙이세요. (쌍자음/쌍모음은 그대로 유지)
+   - 예시 (전민성):
+     - '전' -> ㅈ, ㅓ, ㄴ -> "FS_ㅈ", "FS_ㅓ", "FS_ㄴ"
+     - '민' -> ㅁ, ㅣ, ㄴ -> "FS_ㅁ", "FS_ㅣ", "FS_ㄴ"
+     - '성' -> ㅅ, ㅓ, ㅇ -> "FS_ㅅ", "FS_ㅓ", "FS_ㅇ"
+
+5. Non-Manual Signals (비수지 신호/표정 토큰화)
+   - 문맥에서 느껴지는 핵심 감정이나 의문/부정 등의 어조를 파악하여 facial_expression_token 필드에 상수로 출력하세요.
 
 # Examples for Contextual Sign Language Delivery
 
@@ -100,20 +116,27 @@ Output:
   "ksl_syntax_order": ["오늘", "수건", "덜", "마르다(건조)"],
   "facial_expression_token": "SURPRISE"
 }
-의미 전달 해설: 농인에게 '오늘 수건 아직 덜 마른 상태'라는 이미지를 정확히 전달하기 위해 감탄사와 존칭을 빼고 사전에 있는 단어만 매끄럽게 조합함.
 
-Input: "차 조심해! 지금 차가 너무 막혀."
+Input: "내 이름은 전민성입니다."
 Output:
 {
   "status": "success",
-  "original_text": "차 조심해! 지금 차가 너무 막혀.",
-  "ksl_syntax_order": ["지금", "차(자동차)", "조심", "차(자동차)", "많이", "막히다(정체)"],
-  "facial_expression_token": "SURPRISE"
+  "original_text": "내 이름은 전민성입니다.",
+  "ksl_syntax_order": ["나", "이름", "FS_ㅈ", "FS_ㅓ", "FS_ㄴ", "FS_ㅁ", "FS_ㅣ", "FS_ㄴ", "FS_ㅅ", "FS_ㅓ", "FS_ㅇ"],
+  "facial_expression_token": "NEUTRAL"
 }
-의미 전달 해설: 마시는 차가 아니라 도로 위의 자동차와 정체 상황임을 명확히 인지하여 단어를 조합함.
+
+Input: "너 왜 그렇게 말랐어? 밥 안 먹었어?"
+Output:
+{
+  "status": "success",
+  "original_text": "너 왜 그렇게 말랐어? 밥 안 먹었어?",
+  "ksl_syntax_order": ["너", "마르다(체격)", "QUESTION_WHY", "밥", "먹다", "안"],
+  "facial_expression_token": "QUESTION"
+}
 
 # Input Text
-Analyze and parse the following text to deliver perfect meaning to Deaf users using KSL dictionary tokens:`;
+Analyze and parse the following text strictly adhering to the rules above:`;
 
 async function loadEnv(path) {
   try {
@@ -165,6 +188,22 @@ function normalizeSearchText(text) {
     .trim();
 }
 
+function stripTrailingParticle(word) {
+  const particles = [
+    "으로부터", "에서부터", "에게서", "으로써", "으로서",
+    "부터", "까지", "에게", "에서", "으로", "처럼", "보다", "하고",
+    "은", "는", "이", "가", "을", "를", "에", "의", "도", "만", "와", "과", "로", "랑"
+  ];
+
+  for (const particle of particles) {
+    if (!word.endsWith(particle) || word.length <= particle.length) continue;
+    const stem = word.slice(0, -particle.length);
+    if (stem.length >= 1) return stem;
+  }
+
+  return word;
+}
+
 function buildSearchTerms(text) {
   const normalized = normalizeSearchText(text);
   const words = normalized.split(/\s+/).filter(Boolean);
@@ -172,6 +211,8 @@ function buildSearchTerms(text) {
 
   if (normalized) terms.push({ term: normalized, type: "phrase" });
   for (const word of words) {
+    const stripped = stripTrailingParticle(word);
+    if (stripped && stripped !== word) terms.push({ term: stripped, type: "word" });
     if (word !== normalized) terms.push({ term: word, type: "word" });
   }
 
@@ -191,6 +232,7 @@ function fallbackPlan(text) {
 }
 
 function termsFromKslPlan(parsed, originalText) {
+  const nonLexicalTokens = new Set(["SURPRISE", "QUESTION", "QUESTION_WHY", "NEGATION", "ANGRY", "NEUTRAL"]);
   const order = Array.isArray(parsed?.ksl_syntax_order) ? parsed.ksl_syntax_order : [];
   const orderedTerms = order
     .filter(token => typeof token === "string")
@@ -198,6 +240,7 @@ function termsFromKslPlan(parsed, originalText) {
     .filter(Boolean);
   const apiSearchTerms = orderedTerms
     .filter(token => !token.startsWith("FS_"))
+    .filter(token => !nonLexicalTokens.has(token))
     .map(token => normalizeSearchText(token))
     .filter(Boolean);
 
@@ -541,6 +584,49 @@ function dedupeEntries(entries) {
   });
 }
 
+function compactSearchText(text) {
+  return normalizeSearchText(text).replace(/\s+/g, "");
+}
+
+function sourceRank(entry) {
+  return sourcePriority[entry?.sourceId] ?? 99;
+}
+
+function mediaScore(entry) {
+  return Number(Boolean(entry.videoUrl)) * 3 +
+    Number(Boolean(entry.imageUrl)) * 2 +
+    Number(Boolean(entry.resourceUrl));
+}
+
+function titleParts(title) {
+  return String(title || "")
+    .split(/[,/|·ㆍ]/)
+    .map(part => compactSearchText(part))
+    .filter(Boolean);
+}
+
+function relevanceScore(entry, query) {
+  const term = compactSearchText(query);
+  const title = compactSearchText(entry.title);
+  const parts = titleParts(entry.title);
+  if (!term || !title) return 0;
+  if (title === term) return 100;
+  if (parts.includes(term)) return 90;
+  if (title.startsWith(term)) return 70;
+  if (title.includes(term)) return 45;
+  if (parts.some(part => term.includes(part))) return 25;
+  return 0;
+}
+
+function sortEntries(entries, query) {
+  return [...entries].sort((a, b) =>
+    sourceRank(a) - sourceRank(b) ||
+    relevanceScore(b, query) - relevanceScore(a, query) ||
+    mediaScore(b) - mediaScore(a) ||
+    String(a.title || "").localeCompare(String(b.title || ""), "ko")
+  );
+}
+
 async function searchCultureApis(query) {
   const sources = getConfiguredSources();
 
@@ -558,7 +644,7 @@ async function searchCultureApis(query) {
   );
   const authErrors = settled.filter(result => result.error?.status === 401);
   const otherErrors = settled.filter(result => result.error && result.error.status !== 401);
-  const entries = dedupeEntries(settled.flatMap(result => result.entries));
+  const entries = sortEntries(dedupeEntries(settled.flatMap(result => result.entries)), query);
 
   return {
     configured: true,
