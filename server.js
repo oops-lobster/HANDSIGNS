@@ -63,11 +63,24 @@ const sourcePriority = {
   culture: 3
 };
 
+const blockedKslTerms = new Set([
+  "씨발",
+  "시발",
+  "ㅅㅂ",
+  "존나",
+  "개새끼",
+  "병신",
+  "좆",
+  "ㅈ같다",
+  "좆같다"
+]);
+
 const kslPreprocessPrompt = `# Role
 당신은 일반 한국어 문장을 국립국어원 한국수어사전(sldict.korean.go.kr)에 등록된 표준 단어들의 조합으로 변환하는 '최첨단 수어 의미 번역 및 토큰화 API'입니다. 후속 시스템은 문맥 파악 능력이 전혀 없으므로, 당신이 이 단계에서 완벽한 독해와 자모 분해를 끝내야 합니다.
 
 # Philosophy & Core Objective
 이 프롬프트의 최우선 목적은 수어사전의 단어들을 조합하여, '농인(수어 사용자)에게 왜곡 없이 정확한 의미를 전달하는 것'입니다. 한국어 문법이나 조사에 얽매이지 말고, 농인이 직관적으로 상황과 영상 이미지를 이해할 수 있도록 수어의 시각적·공간적 흐름에 맞춰 단어를 분해하고 재조합하세요.
+사용자 입력에 오타가 있어도 오타를 그대로 지문자로 쪼개지 말고, 앞뒤 문맥으로 의도한 단어를 먼저 교정한 뒤 수어사전 표제어로 정규화하세요.
 
 # Output Format Specification
 - Respond ONLY with a valid JSON object. Do NOT include markdown code blocks or any additional conversational text.
@@ -83,9 +96,18 @@ const kslPreprocessPrompt = `# Role
 1. 수어사전 표준 표제어 기반 분해 (Exact Dictionary Matching)
    - 출력되는 모든 단어는 한국수어사전에 존재하는 표준어 형태여야 뒤쪽 시스템에서 모션 매핑이 가능합니다.
    - 한국어의 복잡한 문장 표현(어미, 접사)을 수어사전에 존재하는 가장 직관적인 핵심 개념 단어(기본형)로 환원하세요.
+   - 조사와 문법적 어미는 전면 제거하고, 명사 원형과 용언의 가장 단순한 기본형만 남기세요.
+   - 파생어 및 구어체 표현은 사전에 존재할 확률이 높은 원초적 단어로 치환하세요. 예: "노래하다" -> "노래", "좋아하다/조아하다" -> "좋다".
+   - 수어사전에 없을 가능성이 높은 신조어, 속어, 과장 표현, 비속어는 그대로 출력하지 마세요. 문맥상 의미가 분명하면 사전에 있을 법한 중립 표제어로 순화하고, 의미가 불명확하면 과감히 제거하세요.
+   - 예: "개쩐다", "쩐다", "미쳤다(감탄)" -> "대단하다" 또는 "놀라다" 또는 "좋다" 중 문맥에 맞는 단어.
+   - 욕설/비속어("씨발", "시발", "ㅅㅂ", "존나" 등)는 의미를 해치지 않는 선에서 제거하세요. 문장의 핵심 감정만 SURPRISE, ANGRY 등 facial_expression_token에 반영하고, 대체할 표준 표제어가 없으면 ksl_syntax_order에 넣지 마세요.
+   - 예: 의미 없는 감탄/추임새("ㅋㅋ", "ㅎㅎ", "헐" 단독, "아")는 제거하거나 facial_expression_token으로만 반영하세요.
    - 예: "마르셨네요" -> 수건이 건조되는 상황이므로 수어사전 표제어인 "마르다(건조)" 추출.
 
-2. 농인 중심의 문맥 및 동음이의어 판별
+2. 오타 자동 교정 및 농인 중심의 문맥 판별
+   - 사용자가 문장에 오타를 입력하더라도 앞뒤 문맥을 파악하여 원래 의도한 올바른 단어로 자동 교정한 뒤 형태소를 분석하세요.
+   - 예: "평등혜야하는건" -> "평등해야 하는 건" -> "평등"
+   - 예: "노래를 조아합니다" -> "노래를 좋아합니다" -> "노래", "좋다"
    - 농인이 수어 모션을 보았을 때 엉뚱한 뜻으로 오해하지 않도록 문맥을 완벽히 파악하여 괄호 안에 의미 구분을 명시하세요.
    - 예: "차가 막히다" -> "차(자동차)", "막히다(정체)" / "차가 차갑다" -> "차(음료)", "차갑다"
    - 예: "살이 마르다" -> "마르다(체격)" / "빨래가 마르다" -> "마르다(건조)"
@@ -97,11 +119,11 @@ const kslPreprocessPrompt = `# Role
 
 4. 고유명사 및 인명 자문자 자모 분해 규칙 (Fingerspelling Phoneme Rule)
    - [가장 중요] 한국수어사전에 없는 인명(사람 이름), 브랜드명 등은 절대 단어나 글자 단위로 묶지 말고, '초성, 중성, 종성(자음과 모음)' 단위로 완전히 해체해야 합니다.
-   - 분해된 자음과 모음은 한국수어사전의 지문자 표제어와 바로 매칭되도록 "FS_" 접두어 없이 자모만 출력하세요. (쌍자음/쌍모음은 그대로 유지)
+   - 분해된 모든 자음과 모음 토큰 앞에는 "FS_" 접두어를 붙이세요. (쌍자음/쌍모음은 그대로 유지)
    - 예시 (전민성):
-     - '전' -> ㅈ, ㅓ, ㄴ -> "ㅈ", "ㅓ", "ㄴ"
-     - '민' -> ㅁ, ㅣ, ㄴ -> "ㅁ", "ㅣ", "ㄴ"
-     - '성' -> ㅅ, ㅓ, ㅇ -> "ㅅ", "ㅓ", "ㅇ"
+     - '전' -> ㅈ, ㅓ, ㄴ -> "FS_ㅈ", "FS_ㅓ", "FS_ㄴ"
+     - '민' -> ㅁ, ㅣ, ㄴ -> "FS_ㅁ", "FS_ㅣ", "FS_ㄴ"
+     - '성' -> ㅅ, ㅓ, ㅇ -> "FS_ㅅ", "FS_ㅓ", "FS_ㅇ"
 
 5. Non-Manual Signals (비수지 신호/표정 토큰화)
    - 문맥에서 느껴지는 핵심 감정이나 의문/부정 등의 어조를 파악하여 facial_expression_token 필드에 상수로 출력하세요.
@@ -122,8 +144,44 @@ Output:
 {
   "status": "success",
   "original_text": "내 이름은 전민성입니다.",
-  "ksl_syntax_order": ["나", "이름", "ㅈ", "ㅓ", "ㄴ", "ㅁ", "ㅣ", "ㄴ", "ㅅ", "ㅓ", "ㅇ"],
+  "ksl_syntax_order": ["나", "이름", "FS_ㅈ", "FS_ㅓ", "FS_ㄴ", "FS_ㅁ", "FS_ㅣ", "FS_ㄴ", "FS_ㅅ", "FS_ㅓ", "FS_ㅇ"],
   "facial_expression_token": "NEUTRAL"
+}
+
+Input: "나는 노래를 조아합니다."
+Output:
+{
+  "status": "success",
+  "original_text": "나는 노래를 조아합니다.",
+  "ksl_syntax_order": ["나", "노래", "좋다"],
+  "facial_expression_token": "NEUTRAL"
+}
+
+Input: "교육기술의 혜택이 평등혜야하는건 아니야."
+Output:
+{
+  "status": "success",
+  "original_text": "교육기술의 혜택이 평등혜야하는건 아니야.",
+  "ksl_syntax_order": ["교육", "기술", "혜택", "평등", "아니다"],
+  "facial_expression_token": "NEGATION"
+}
+
+Input: "와 이 노래 개쩐다."
+Output:
+{
+  "status": "success",
+  "original_text": "와 이 노래 개쩐다.",
+  "ksl_syntax_order": ["노래", "좋다"],
+  "facial_expression_token": "SURPRISE"
+}
+
+Input: "씨발 너무 아파."
+Output:
+{
+  "status": "success",
+  "original_text": "씨발 너무 아파.",
+  "ksl_syntax_order": ["많이", "아프다"],
+  "facial_expression_token": "ANGRY"
 }
 
 Input: "너 왜 그렇게 말랐어? 밥 안 먹었어?"
@@ -204,6 +262,48 @@ function stripTrailingParticle(word) {
   return word;
 }
 
+function dictionaryTermVariants(term) {
+  const normalized = normalizeSearchText(term);
+  const variants = [];
+
+  const add = value => {
+    const normalizedValue = normalizeSearchText(value);
+    if (normalizedValue && !variants.includes(normalizedValue)) variants.push(normalizedValue);
+  };
+
+  if (normalized === "좋아하다" || normalized === "조아하다") {
+    add("좋다");
+  }
+
+  const slangMap = new Map([
+    ["개쩐다", "좋다"],
+    ["쩐다", "좋다"],
+    ["개좋다", "좋다"],
+    ["짱좋다", "좋다"],
+    ["미쳤다", "대단하다"],
+    ["대박", "대단하다"]
+  ]);
+  if (slangMap.has(normalized)) {
+    add(slangMap.get(normalized));
+  }
+
+  if (normalized.endsWith("좋아하다") || normalized.endsWith("조아하다")) {
+    add("좋다");
+  }
+
+  if (normalized.endsWith("하다") && normalized.length > 2) {
+    const stem = normalized.slice(0, -2);
+    if (stem === "좋아" || stem === "조아") {
+      add("좋다");
+    } else {
+      add(stem);
+    }
+  }
+
+  add(normalized);
+  return variants;
+}
+
 function buildSearchTerms(text) {
   const normalized = normalizeSearchText(text);
   const words = normalized.split(/\s+/).filter(Boolean);
@@ -266,13 +366,17 @@ function termsFromKslPlan(parsed, originalText) {
     .map(token => token.startsWith("FS_") ? token.slice(3) : token)
     .filter(token => !nonLexicalTokens.has(token))
     .map(token => normalizeSearchText(token))
+    .filter(token => !blockedKslTerms.has(token))
     .filter(Boolean);
   const kslSearchItems = apiSearchTerms.flatMap(term => {
-    const parts = term.split(/\s+/).filter(part => part && part !== term);
-    return [
-      { term, type: "ksl" },
-      ...parts.map(part => ({ term: part, type: "ksl_part" }))
-    ];
+    const terms = dictionaryTermVariants(term);
+    return terms.flatMap((variant, index) => {
+      const parts = variant.split(/\s+/).filter(part => part && part !== variant);
+      return [
+        { term: variant, type: index === 0 ? "ksl" : "ksl_variant" },
+        ...parts.map(part => ({ term: part, type: "ksl_part" }))
+      ];
+    });
   });
 
   const merged = kslSearchItems;
@@ -280,7 +384,7 @@ function termsFromKslPlan(parsed, originalText) {
   const seen = new Set();
   return merged.filter(item => {
     if (!item.term) return false;
-    if (item.type === "ksl" || item.type === "ksl_part") {
+    if (item.type === "ksl" || item.type === "ksl_part" || item.type === "ksl_variant") {
       seen.add(item.term);
       return true;
     }
@@ -553,7 +657,8 @@ async function searchOneSource(source, query) {
   url.searchParams.set(process.env.CULTURE_API_QUERY_PARAM || "keyword", query);
 
   const pageSizeParam = process.env.CULTURE_API_PAGE_SIZE_PARAM || "numOfRows";
-  const pageSize = process.env.CULTURE_API_PAGE_SIZE || "20";
+  const requestedPageSize = Number(process.env.CULTURE_API_PAGE_SIZE || "20");
+  const pageSize = String(Math.max(Number.isFinite(requestedPageSize) ? requestedPageSize : 20, 20));
   if (pageSizeParam && pageSize) url.searchParams.set(pageSizeParam, pageSize);
 
   const pageParam = process.env.CULTURE_API_PAGE_PARAM || "pageNo";
