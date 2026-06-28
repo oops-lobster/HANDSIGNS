@@ -817,6 +817,7 @@ textarea:focus {
 }
 
 .feedbackContact span {
+  grid-column: 2;
   color: #371d1e;
   font-size: 13px;
   font-weight: 950;
@@ -824,10 +825,12 @@ textarea:focus {
 }
 
 .feedbackContact strong {
+  grid-column: 2;
   display: block;
   margin-top: 5px;
   font-size: 20px;
   line-height: 1.35;
+  word-break: keep-all;
 }
 
 .aboutLinks {
@@ -1121,6 +1124,11 @@ textarea:focus {
   .feedbackContact {
     align-items: flex-start;
     grid-template-columns: 1fr;
+  }
+
+  .feedbackContact span,
+  .feedbackContact strong {
+    grid-column: 1;
   }
 
   .feedbackContact::after {
