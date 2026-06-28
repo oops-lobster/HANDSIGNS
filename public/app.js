@@ -264,6 +264,13 @@ async function translate(text) {
   return data;
 }
 
+async function searchDirect(text) {
+  const response = await fetch(`${apiBaseUrl}/api/signs/search?q=${encodeURIComponent(text)}`);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "검색에 실패했습니다.");
+  return data;
+}
+
 prevButton.addEventListener("click", () => {
   isAutoPlaying = false;
   showPreview(activeIndex - 1);
@@ -297,6 +304,15 @@ form.addEventListener("submit", async event => {
     const data = await translate(text);
     renderPlanner(data.planner);
     queue = flattenResults(data);
+
+    if (!queue.length) {
+      const direct = await searchDirect(text);
+      queue = bestEntries({ term: text, entries: direct.entries || [] }).slice(0, 1);
+      if (queue.length) {
+        data.results.push({ term: text, type: "direct", ...direct });
+      }
+    }
+
     renderTimeline();
 
     const hasRealConfig = data.results.some(result => result.configured);

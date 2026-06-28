@@ -536,6 +536,22 @@ async function searchOneSource(source, query) {
   }
 }
 
+function wait(ms) {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function searchOneSourceWithRetry(source, query) {
+  try {
+    return await searchOneSource(source, query);
+  } catch (firstError) {
+    if (firstError.status === 401) throw firstError;
+    await wait(250);
+    return searchOneSource(source, query);
+  }
+}
+
 function dedupeEntries(entries) {
   const seen = new Set();
   return entries.filter(entry => {
@@ -557,7 +573,7 @@ async function searchCultureApis(query) {
   }
 
   const settled = await Promise.all(
-    sources.map(source => searchOneSource(source, query)
+    sources.map(source => searchOneSourceWithRetry(source, query)
       .then(entries => ({ source, entries, error: null }))
       .catch(error => ({ source, entries: [], error })))
   );
@@ -593,7 +609,8 @@ async function handleApi(req, res, url) {
 
     if (req.method === "POST" && url.pathname === "/api/signs/translate") {
       const body = JSON.parse((await readBody(req)) || "{}");
-      const plan = await planSignTerms(String(body.text || ""));
+      const originalText = normalizeSearchText(String(body.text || ""));
+      const plan = await planSignTerms(originalText);
       const searchItems = plan.terms;
       const terms = searchItems.map(item => item.term);
       if (!terms.length) return sendJson(res, 400, { error: "Missing text." });
@@ -601,6 +618,19 @@ async function handleApi(req, res, url) {
       const results = [];
       for (const item of searchItems) {
         results.push({ term: item.term, type: item.type, ...(await searchCultureApis(item.term)) });
+      }
+
+      const hasEntries = results.some(result => result.entries?.length);
+      if (!hasEntries && originalText && !terms.includes(originalText)) {
+        results.push({ term: originalText, type: "direct", ...(await searchCultureApis(originalText)) });
+        terms.push(originalText);
+      } else if (!hasEntries && originalText) {
+        const fallback = await searchCultureApis(originalText);
+        const originalResult = results.find(result => result.term === originalText);
+        if (originalResult && fallback.entries?.length) {
+          originalResult.entries = fallback.entries;
+          originalResult.warnings = fallback.warnings;
+        }
       }
 
       return sendJson(res, 200, { terms, planner: plan, results });
