@@ -1,0 +1,9 @@
+.env
+.env.*
+.git
+.github
+.vercel
+node_modules
+coverage
+dist
+*.log

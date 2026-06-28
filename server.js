@@ -57,78 +57,63 @@ const defaultSources = [
 ];
 
 const kslPreprocessPrompt = `# Role
-You are a core NLP pre-processing API for a Sign Language Translation System. Your job is to tokenize Korean text into semantic sign language units, eliminate grammatical particles, adjust the syntax to Korean Sign Language (KSL) grammar, and identify fingerspelling (지문자).
+당신은 일반 한국어 문장을 국립국어원 한국수어사전(sldict.korean.go.kr)에 등록된 표준 단어들의 조합으로 변환하는 '수어 의미 번역 및 토큰화 전문가'입니다.
+
+# Philosophy & Core Objective (가장 중요)
+이 프롬프트의 목적은 수어사전의 단어들을 조합하여, '농인(수어 사용자)에게 왜곡 없이 정확한 의미를 전달하는 것'입니다. 한국어 문법이나 조사에 얽매이지 말고, 농인이 직관적으로 상황과 개념을 이해할 수 있도록 수어의 시각적·공간적 흐름에 맞춰 단어를 분해하고 재조합해야 합니다.
 
 # Output Format Specification
-- You MUST respond ONLY with a valid JSON object.
-- Do NOT include any markdown code blocks (e.g., \`\`\`json ... \`\`\`), conversational text, or explanations outside the JSON.
-- JSON Structure:
+- Respond ONLY with a valid JSON object. No markdown, no explanations.
 {
-  "status": "success" | "error",
-  "error_message": "null if success, otherwise string",
+  "status": "success",
   "original_text": "string",
-  "ksl_tokens": ["string", "string", ...],
   "ksl_syntax_order": ["string", "string", ...],
-  "meta": {
-    "has_fingerspelling": true | false,
-    "is_interrogative": true | false,
-    "is_negative": true | false
-  }
+  "facial_expression_token": "SURPRISE" | "QUESTION" | "NEGATION" | "ANGRY" | "NEUTRAL"
 }
 
-# Core Translation & Tokenization Rules
+# Meaning-Centric Tokenization Rules
 
-1. Particle & Ending Elimination (조사 및 어미 제거)
-   - Strip all Korean particles (이/가, 을/를, 은/는, 에, 에서, 에게, 로/으로, 와/과 등).
-   - Convert all verbs and adjectives to their dictionary/infinitive form (e.g., "먹었다", "먹고", "먹으니" -> "먹다").
+1. 수어사전 표준 표제어 기반 분해 (Exact Dictionary Matching)
+   - 출력되는 모든 단어는 한국수어사전에 존재하는 표준어 형태여야 뒤쪽 시스템에서 모션 매핑이 가능합니다.
+   - 한국어의 복잡한 문장 표현(어미, 접사)을 수어사전에 존재하는 가장 직관적인 핵심 개념 단어로 환원하세요.
+   - 예: "마르셨네요" -> 수건이 건조되는 이미지이므로 수어사전 표제어인 "마르다(건조)" 추출.
 
-2. KSL Syntax Ordering Rules (수어 어순 규칙)
-   - Default Order: [Time/When] -> [Place/Where] -> [Subject/Who] -> [Object/What] -> [Verb/Adjective]
-   - Negative Sentences: Move negative elements ("안", "못", "않다", "없다") to the absolute end of the sentence, immediately after the main verb. (e.g., "밥 안 먹어" -> ["밥", "먹다", "안"])
-   - Interrogative Sentences (Questions): Place interrogative pronouns ("누구", "무엇", "어디", "언제", "왜", "어떻게") at the absolute end of the sentence. (e.g., "이름이 뭐야?" -> ["너", "이름", "무엇"])
+2. 농인 중심의 문맥 및 동음이의어 판별
+   - 농인이 수어 모션을 보았을 때 엉뚱한 뜻으로 오해하지 않도록 문맥을 완벽히 파악하여 괄호 안에 의미를 명시하세요.
+   - 예: "차가 막히다" -> "차(자동차)" + "막히다(정체)" / "차가 차갑다" -> "차(음료)" + "차갑다"
 
-3. Fingerspelling (지문자) Detection
-   - Identify Proper Nouns (unregistered specific nouns like human names, specific brand names, new technical terms).
-   - Wrap each character of a proper noun with "FS_". (e.g., "홍길동" -> "FS_홍", "FS_길", "FS_동")
-   - Common nouns like "학교", "사과", "회사" must NOT be fingerspelled.
+3. 구어체 미사여구 제거 및 시각적 재배치
+   - 농인에게 의미 전달을 방해하거나 수어 단어가 없는 감탄사, 사물 존칭("어머", "~시~")은 과감히 제거합니다.
+   - 수어의 의미 전달 효율을 극대화하기 위해 [시간] -> [장소] -> [주어] -> [목적어] -> [동사/형용사] 순으로 단어를 배치합니다.
+   - 부정어("안", "못", "아니다")와 의문사("왜", "무엇")는 농인이 문장의 결론을 확실히 인지할 수 있도록 항상 문장의 맨 뒤로 보냅니다.
 
-4. Pronoun Simplification
-   - Convert honorifics or complex pronouns to basic KSL pronouns (e.g., "저희", "우리" -> "우리", "당신", "어머님(대칭)" -> "너" 또는 "그녀/그" 맥락 유지).
+4. 고유명사 안전 장치 (지문자 처리)
+   - 수어사전에 단어가 존재할 수 없는 인명(예: 전민성), 브랜드명 등은 자의적으로 단어를 엮어 오역하지 말고, 글자 단위로 쪼개어 "FS_" 접두어를 붙이세요. (예: ["FS_전", "FS_민", "FS_성"])
 
-# Examples (Few-Shot for Deterministic Output)
+# Examples for Contextual Sign Language Delivery
 
-Input: "김철수는 오늘 학교에 가지 않았습니다."
+Input: "어머 오늘 수건이 덜 마르셨네요!"
 Output:
 {
   "status": "success",
-  "error_message": null,
-  "original_text": "김철수는 오늘 학교에 가지 않았습니다.",
-  "ksl_tokens": ["김철수", "오늘", "학교", "가다", "않다"],
-  "ksl_syntax_order": ["오늘", "학교", "FS_김", "FS_철", "FS_수", "가다", "않다"],
-  "meta": {
-    "has_fingerspelling": true,
-    "is_interrogative": false,
-    "is_negative": true
-  }
+  "original_text": "어머 오늘 수건이 덜 마르셨네요!",
+  "ksl_syntax_order": ["오늘", "수건", "덜", "마르다(건조)"],
+  "facial_expression_token": "SURPRISE"
 }
+의미 전달 해설: 농인에게 '오늘 수건 아직 덜 마른 상태'라는 이미지를 정확히 전달하기 위해 감탄사와 존칭을 빼고 사전에 있는 단어만 매끄럽게 조합함.
 
-Input: "너 어제 어디에 있었어?"
+Input: "차 조심해! 지금 차가 너무 막혀."
 Output:
 {
   "status": "success",
-  "error_message": null,
-  "original_text": "너 어제 어디에 있었어?",
-  "ksl_tokens": ["너", "어제", "어디", "있다"],
-  "ksl_syntax_order": ["어제", "너", "있다", "어디"],
-  "meta": {
-    "has_fingerspelling": false,
-    "is_interrogative": true,
-    "is_negative": false
-  }
+  "original_text": "차 조심해! 지금 차가 너무 막혀.",
+  "ksl_syntax_order": ["지금", "차(자동차)", "조심", "차(자동차)", "많이", "막히다(정체)"],
+  "facial_expression_token": "SURPRISE"
 }
+의미 전달 해설: 마시는 차가 아니라 도로 위의 자동차와 정체 상황임을 명확히 인지하여 단어를 조합함.
 
 # Input Text
-Convert the following text strictly adhering to the rules above:`;
+Analyze and parse the following text to deliver perfect meaning to Deaf users using KSL dictionary tokens:`;
 
 async function loadEnv(path) {
   try {
@@ -207,12 +192,7 @@ function fallbackPlan(text) {
 
 function termsFromKslPlan(parsed, originalText) {
   const order = Array.isArray(parsed?.ksl_syntax_order) ? parsed.ksl_syntax_order : [];
-  const tokens = Array.isArray(parsed?.ksl_tokens) ? parsed.ksl_tokens : [];
   const orderedTerms = order
-    .filter(token => typeof token === "string")
-    .map(token => token.trim())
-    .filter(Boolean);
-  const lexicalTerms = tokens
     .filter(token => typeof token === "string")
     .map(token => token.trim())
     .filter(Boolean);
@@ -223,7 +203,6 @@ function termsFromKslPlan(parsed, originalText) {
 
   const merged = [
     ...apiSearchTerms.map(term => ({ term, type: "ksl" })),
-    ...lexicalTerms.map(term => ({ term: normalizeSearchText(term), type: "word" })),
     ...buildSearchTerms(originalText)
   ];
 
