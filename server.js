@@ -14,6 +14,7 @@ const host = process.env.HOST || "127.0.0.1";
 const geminiRateLimitWindowMs = 60_000;
 const geminiRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_MINUTE || 15);
 const geminiPlanCacheTtlMs = Number(process.env.GEMINI_PLAN_CACHE_TTL_MS || 6 * 60 * 60 * 1000);
+const cultureApiTimeoutMs = Number(process.env.CULTURE_API_TIMEOUT_MS || 3200);
 const geminiRequestWindow = globalThis.__handsignsGeminiRequestWindow || [];
 const geminiPlanCache = globalThis.__handsignsGeminiPlanCache || new Map();
 const cultureSearchCache = globalThis.__handsignsCultureSearchCache || new Map();
@@ -73,7 +74,7 @@ const sourcePriority = {
   culture: 3
 };
 
-const blockedKslTerms = new Set([
+const hardBlockedTerms = new Set([
   "씨발",
   "시발",
   "ㅅㅂ",
@@ -84,6 +85,15 @@ const blockedKslTerms = new Set([
   "ㅈ같다",
   "좆같다"
 ]);
+const slangReplacementTerms = new Map([
+  ["개쩐다", "좋다"],
+  ["쩐다", "좋다"],
+  ["개좋다", "좋다"],
+  ["짱좋다", "좋다"],
+  ["미쳤다", "대단하다"],
+  ["대박", "대단하다"]
+]);
+const blockedKslTerms = new Set([...hardBlockedTerms, ...slangReplacementTerms.keys()]);
 
 const kslPreprocessPrompt = `# Role
 당신은 일반 한국어 문장을 국립국어원 한국수어사전(sldict.korean.go.kr)에 등록된 표준 단어들의 조합으로 변환하는 '최첨단 수어 의미 번역 및 토큰화 API'입니다. 후속 시스템은 문맥 파악 능력이 전혀 없으므로, 당신이 이 단계에서 완벽한 독해와 자모 분해를 끝내야 합니다.
@@ -108,9 +118,10 @@ const kslPreprocessPrompt = `# Role
    - 한국어의 복잡한 문장 표현(어미, 접사)을 수어사전에 존재하는 가장 직관적인 핵심 개념 단어(기본형)로 환원하세요.
    - 조사와 문법적 어미는 전면 제거하고, 명사 원형과 용언의 가장 단순한 기본형만 남기세요.
    - 파생어 및 구어체 표현은 사전에 존재할 확률이 높은 원초적 단어로 치환하세요. 예: "노래하다" -> "노래", "좋아하다/조아하다" -> "좋다".
-   - 수어사전에 없을 가능성이 높은 신조어, 속어, 과장 표현, 비속어는 그대로 출력하지 마세요. 문맥상 의미가 분명하면 사전에 있을 법한 중립 표제어로 순화하고, 의미가 불명확하면 과감히 제거하세요.
-   - 예: "개쩐다", "쩐다", "미쳤다(감탄)" -> "대단하다" 또는 "놀라다" 또는 "좋다" 중 문맥에 맞는 단어.
-   - 욕설/비속어("씨발", "시발", "ㅅㅂ", "존나" 등)는 의미를 해치지 않는 선에서 제거하세요. 문장의 핵심 감정만 SURPRISE, ANGRY 등 facial_expression_token에 반영하고, 대체할 표준 표제어가 없으면 ksl_syntax_order에 넣지 마세요.
+   - [명시적 안전 규칙] 욕설, 혐오 표현, 비하 표현, 공격적 비속어는 수어 영상으로 변환하지 않습니다. 절대 욕설 원문을 ksl_syntax_order에 넣지 마세요.
+   - 욕설/비속어("씨발", "시발", "ㅅㅂ", "존나", "개새끼", "병신", "좆" 등)는 의미를 해치지 않는 선에서 제거하세요. 문장의 핵심 감정만 SURPRISE, ANGRY 등 facial_expression_token에 반영하고, 대체할 표준 표제어가 없으면 ksl_syntax_order에 넣지 마세요.
+   - 수어사전에 없을 가능성이 높은 신조어, 속어, 과장 표현은 그대로 출력하지 마세요. 문맥상 의미가 분명하면 사전에 있을 법한 중립 표제어로 순화하고, 의미가 불명확하면 과감히 제거하세요.
+   - 예: "개쩐다", "쩐다", "미쳤다(감탄)" -> "대단하다" 또는 "놀라다" 또는 "좋다" 중 문맥에 맞는 단어. 단, 원문 "개쩐다/쩐다/미쳤다" 자체는 출력하지 마세요.
    - 예: 의미 없는 감탄/추임새("ㅋㅋ", "ㅎㅎ", "헐" 단독, "아")는 제거하거나 facial_expression_token으로만 반영하세요.
    - 예: "마르셨네요" -> 수건이 건조되는 상황이므로 수어사전 표제어인 "마르다(건조)" 추출.
 
@@ -330,16 +341,8 @@ function dictionaryTermVariants(term) {
     add("좋다");
   }
 
-  const slangMap = new Map([
-    ["개쩐다", "좋다"],
-    ["쩐다", "좋다"],
-    ["개좋다", "좋다"],
-    ["짱좋다", "좋다"],
-    ["미쳤다", "대단하다"],
-    ["대박", "대단하다"]
-  ]);
-  if (slangMap.has(normalized)) {
-    add(slangMap.get(normalized));
+  if (slangReplacementTerms.has(normalized)) {
+    add(slangReplacementTerms.get(normalized));
   }
 
   if (normalized.endsWith("좋아하다") || normalized.endsWith("조아하다")) {
@@ -355,8 +358,15 @@ function dictionaryTermVariants(term) {
     }
   }
 
-  add(normalized);
+  if (!blockedKslTerms.has(normalized)) {
+    add(normalized);
+  }
   return variants;
+}
+
+function includesHardBlockedLanguage(text) {
+  const compact = compactSearchText(text);
+  return [...hardBlockedTerms].some(term => compact.includes(compactSearchText(term)));
 }
 
 function buildSearchTerms(text) {
@@ -810,6 +820,7 @@ async function searchOneSource(source, query) {
   if (formatParam && format) url.searchParams.set(formatParam, format);
 
   const response = await fetch(url, {
+    signal: AbortSignal.timeout(cultureApiTimeoutMs),
     headers: {
       accept: "application/json, text/xml;q=0.9, */*;q=0.8"
     }
@@ -1011,6 +1022,7 @@ async function searchCultureApis(query) {
     try {
       const entries = await searchOneSourceWithRetry(source, query);
       settled.push({ source, entries, error: null });
+      if (entries.length) break;
     } catch (error) {
       if (process.env.DEBUG_CULTURE_API === "true") {
         console.warn("Culture API search failed", {
@@ -1125,6 +1137,13 @@ async function handleApi(req, res, url) {
     if (req.method === "POST" && url.pathname === "/api/signs/translate") {
       const body = JSON.parse((await readBody(req)) || "{}");
       const originalText = normalizeSearchText(String(body.text || ""));
+      if (includesHardBlockedLanguage(originalText)) {
+        return sendJson(res, 422, {
+          error: "욕설이나 공격적인 표현은 수어 영상으로 변환하지 않습니다.",
+          reason: "blocked_language"
+        });
+      }
+
       const plan = await planSignTerms(originalText);
       if (plan.source === "gemini_unavailable") {
         const isQuotaExhausted = plan.reason === "quota_exhausted";

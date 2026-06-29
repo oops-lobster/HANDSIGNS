@@ -172,7 +172,7 @@ h1 {
 
 .speechInput {
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: 1fr auto auto;
   gap: 10px;
 }
 
@@ -207,6 +207,18 @@ textarea:focus {
   color: var(--muted);
   font-size: 13px;
   font-weight: 720;
+  line-height: 1.45;
+}
+
+.safetyNotice {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgb(179 119 26 / 22%);
+  border-radius: 8px;
+  background: rgb(255 248 232 / 72%);
+  color: #7a5318;
+  font-size: 12px;
+  font-weight: 760;
   line-height: 1.45;
 }
 

@@ -17,6 +17,7 @@ const feedbackInput = document.querySelector("#feedbackInput");
 const feedbackStatus = document.querySelector("#feedbackStatus");
 
 const apiBaseUrl = window.HANDSIGNS_API_BASE_URL || "";
+const translateTimeoutMs = 14_000;
 const videoLoadTimeoutMs = 6500;
 const imageFallbackDurationMs = 1500;
 const sourcePriority = {
@@ -444,20 +445,35 @@ function bestEntries(result) {
 }
 
 async function translate(text) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), translateTimeoutMs);
+
   const response = await fetch(`${apiBaseUrl}/api/signs/translate`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ text })
+    body: JSON.stringify({ text }),
+    signal: controller.signal
+  }).catch(error => {
+    if (error.name === "AbortError") {
+      const timeoutError = new Error("검색 시간이 길어져 변환을 멈췄습니다.");
+      timeoutError.reason = "search_timeout";
+      throw timeoutError;
+    }
+    throw error;
   });
 
-  const data = await response.json();
-  if (!response.ok) {
-    const error = new Error(data.error || "변환에 실패했습니다.");
-    error.reason = data.reason;
-    error.retryAfterSeconds = data.retryAfterSeconds;
-    throw error;
+  try {
+    const data = await response.json();
+    if (!response.ok) {
+      const error = new Error(data.error || "변환에 실패했습니다.");
+      error.reason = data.reason;
+      error.retryAfterSeconds = data.retryAfterSeconds;
+      throw error;
+    }
+    return data;
+  } finally {
+    window.clearTimeout(timeoutId);
   }
-  return data;
 }
 
 async function submitFeedback(feedback) {
@@ -549,11 +565,19 @@ form.addEventListener("submit", async event => {
   } catch (error) {
     const quotaExhausted = error.reason === "quota_exhausted";
     const rateLimited = error.reason === "rate_limited";
+    const searchTimeout = error.reason === "search_timeout";
+    const blockedLanguage = error.reason === "blocked_language";
     isAutoPlaying = false;
     if (rateLimited) {
       const retryAfter = Number(error.retryAfterSeconds || 60);
       setStatus("소모 제한", "warning");
       showEmptyState("잠시 후 다시 시도해 주세요.", `Gemini 토큰 보호를 위해 1분에 15번까지만 변환합니다. 약 ${retryAfter}초 뒤 다시 시도할 수 있습니다.`);
+    } else if (blockedLanguage) {
+      setStatus("변환 제외", "warning");
+      showEmptyState("이 표현은 변환하지 않습니다.", "욕설, 혐오 표현, 공격적인 비속어는 수어 영상으로 변환하지 않습니다. 의미를 순화한 문장으로 다시 입력해 주세요.");
+    } else if (searchTimeout) {
+      setStatus("검색 실패", "warning");
+      showEmptyState("검색 시간이 너무 길어졌습니다.", "수어 API 응답이 지연되어 변환을 멈췄습니다. 잠시 후 다시 시도해 주세요.");
     } else if (quotaExhausted) {
       setStatus("사용 불가", "warning");
       showEmptyState("지금은 수어 변환을 사용할 수 없습니다.", "Gemini 사용량이 모두 소진되어 변환 준비가 멈췄습니다. 새 API 키가 반영된 뒤 다시 시도해 주세요.");
