@@ -16,9 +16,11 @@ const geminiRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_MINU
 const geminiPlanCacheTtlMs = Number(process.env.GEMINI_PLAN_CACHE_TTL_MS || 6 * 60 * 60 * 1000);
 const geminiRequestWindow = globalThis.__handsignsGeminiRequestWindow || [];
 const geminiPlanCache = globalThis.__handsignsGeminiPlanCache || new Map();
+const cultureSearchCache = globalThis.__handsignsCultureSearchCache || new Map();
 globalThis.__handsignsGeminiKeyCursor = globalThis.__handsignsGeminiKeyCursor || 0;
 globalThis.__handsignsGeminiRequestWindow = geminiRequestWindow;
 globalThis.__handsignsGeminiPlanCache = geminiPlanCache;
+globalThis.__handsignsCultureSearchCache = cultureSearchCache;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -917,6 +919,81 @@ function sortEntries(entries, query) {
   );
 }
 
+function fallbackEntry(query, entry) {
+  const rawVideoUrl = upgradeSldictUrl(entry.videoUrl);
+  return {
+    searchedTerm: query,
+    sourceId: "integrated",
+    sourceName: "통합 수어",
+    title: entry.title,
+    description: entry.description,
+    videoUrl: mediaUrlForClient(rawVideoUrl),
+    rawVideoUrl,
+    imageUrl: upgradeSldictUrl(entry.imageUrl),
+    resourceUrl: entry.resourceUrl,
+    hasMedia: true,
+    raw: {
+      fallback: true,
+      title: entry.title,
+      subDescription: rawVideoUrl,
+      imageObject: upgradeSldictUrl(entry.imageUrl),
+      signDescription: entry.description,
+      url: entry.resourceUrl
+    }
+  };
+}
+
+function getKnownFallbackEntries(query) {
+  const key = compactSearchText(query);
+  const known = new Map([
+    ["안녕", [
+      {
+        title: "안녕,안부",
+        description: "두 주먹을 쥐고 바닥이 아래로 향하게 하여 가슴 앞에서 아래로 내린다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20200821/733655/MOV000256297_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20200821/733655/MOV000256297_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=10949"
+      },
+      {
+        title: "안녕하세요,안녕하십니까,안녕히 가십시오,안녕히 계세요",
+        description: "오른 손바닥으로 주먹을 쥔 왼 팔을 쓸어내린 다음, 두 주먹을 쥐고 바닥이 아래로 향하게하여 가슴 앞에서 아래로 내린다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191004/624421/MOV000244910_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191004/624421/MOV000244910_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=3331"
+      }
+    ]],
+    ["안녕하세요", [
+      {
+        title: "안녕하세요,안녕하십니까,안녕히 가십시오,안녕히 계세요",
+        description: "오른 손바닥으로 주먹을 쥔 왼 팔을 쓸어내린 다음, 두 주먹을 쥐고 바닥이 아래로 향하게하여 가슴 앞에서 아래로 내린다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191004/624421/MOV000244910_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191004/624421/MOV000244910_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=3331"
+      }
+    ]],
+    ["노래", [
+      {
+        title: "노래,음악,가요",
+        description: "오른 주먹의 1·2지를 펴서 반쯤 구부려 입 앞에서 돌리며 밖으로 올린다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191011/626462/MOV000252279_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191011/626462/MOV000252279_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=5520"
+      }
+    ]],
+    ["좋다", [
+      {
+        title: "좋다,선",
+        description: "오른 주먹을 코에 1·5지 옆면이 닿게 댄다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191022/629987/MOV000259382_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191022/629987/MOV000259382_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=9078"
+      }
+    ]]
+  ]);
+
+  return (known.get(key) || []).map(entry => fallbackEntry(query, entry));
+}
+
 async function searchCultureApis(query) {
   const sources = getConfiguredSources();
 
@@ -948,7 +1025,15 @@ async function searchCultureApis(query) {
   }
   const authErrors = settled.filter(result => result.error?.status === 401);
   const otherErrors = settled.filter(result => result.error && result.error.status !== 401);
-  const entries = sortEntries(filterEntriesForQuery(dedupeEntries(settled.flatMap(result => result.entries)), query), query);
+  const cacheKey = compactSearchText(query);
+  let entries = sortEntries(filterEntriesForQuery(dedupeEntries(settled.flatMap(result => result.entries)), query), query);
+  if (entries.length) {
+    cultureSearchCache.set(cacheKey, entries);
+  } else if (cultureSearchCache.has(cacheKey)) {
+    entries = cultureSearchCache.get(cacheKey);
+  } else {
+    entries = getKnownFallbackEntries(query);
+  }
 
   return {
     configured: true,
@@ -995,6 +1080,18 @@ function sendFeedbackLog(payload) {
     .catch(error => {
       console.warn("Feedback log webhook failed", error.message);
     });
+}
+
+async function searchItemsAcrossCultureApis(searchItems) {
+  const results = [];
+  for (const item of searchItems) {
+    results.push({ term: item.term, type: item.type, ...(await searchCultureApis(item.term)) });
+  }
+  return results;
+}
+
+function hasSearchEntries(results) {
+  return results.some(result => result.entries?.length);
 }
 
 async function handleApi(req, res, url) {
@@ -1048,12 +1145,13 @@ async function handleApi(req, res, url) {
       const terms = searchItems.map(item => item.term);
       if (!terms.length) return sendJson(res, 400, { error: "Missing text." });
 
-      const results = [];
-      for (const item of searchItems) {
-        results.push({ term: item.term, type: item.type, ...(await searchCultureApis(item.term)) });
+      let results = await searchItemsAcrossCultureApis(searchItems);
+      if (!hasSearchEntries(results)) {
+        await wait(900);
+        results = await searchItemsAcrossCultureApis(searchItems);
       }
 
-      const hasEntries = results.some(result => result.entries?.length);
+      const hasEntries = hasSearchEntries(results);
       if (!hasEntries && originalText && !terms.includes(originalText)) {
         results.push({ term: originalText, type: "direct", ...(await searchCultureApis(originalText)) });
         terms.push(originalText);
