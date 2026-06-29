@@ -330,7 +330,15 @@ function dictionaryTermVariants(term) {
     ["반갑습니다", ["반갑다"]],
     ["고맙습니다", ["고맙다"]],
     ["감사합니다", ["감사"]],
-    ["죄송합니다", ["미안"]]
+    ["죄송합니다", ["미안"]],
+    ["좋아합니다", ["좋다"]],
+    ["조아합니다", ["좋다"]],
+    ["좋아해요", ["좋다"]],
+    ["조아해요", ["좋다"]],
+    ["좋아해", ["좋다"]],
+    ["조아해", ["좋다"]],
+    ["좋았습니다", ["좋다"]],
+    ["좋았어요", ["좋다"]]
   ]);
   const compact = compactSearchText(normalized);
   if (exactMap.has(compact)) {
@@ -347,6 +355,18 @@ function dictionaryTermVariants(term) {
 
   if (normalized.endsWith("좋아하다") || normalized.endsWith("조아하다")) {
     add("좋다");
+  }
+
+  const politeVerbEnding = ["합니다", "해요", "했어요", "했어", "하고", "하는", "해서", "해"];
+  for (const ending of politeVerbEnding) {
+    if (!normalized.endsWith(ending) || normalized.length <= ending.length) continue;
+    const stem = normalized.slice(0, -ending.length);
+    if (stem === "좋아" || stem === "조아") {
+      add("좋다");
+    } else if (stem.length >= 1) {
+      add(stem);
+    }
+    break;
   }
 
   if (normalized.endsWith("하다") && normalized.length > 2) {
@@ -595,7 +615,8 @@ async function planSignTerms(text) {
       } catch (error) {
         lastError = error;
         const reason = geminiUnavailableReason(error.message);
-        if (reason !== "quota_exhausted" && reason !== "key_invalid") break;
+        if (reason === "key_invalid") continue;
+        if (reason !== "quota_exhausted" && reason !== "unavailable") break;
       }
     }
 

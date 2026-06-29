@@ -13,12 +13,10 @@
   --success: #4FB8A6;
   --warning: #C9785A;
   --black: #0E0D0D;
-  --radius-xl: 28px;
-  --radius: 20px;
-  --radius-sm: 14px;
+  --radius-screen: 18px;
+  --radius-panel: 10px;
+  --radius-ticket: 7px;
   --mono: "JetBrains Mono", "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", monospace;
-  --shadow-screen: 0 32px 80px rgb(0 0 0 / 42%);
-  --shadow-panel: 0 18px 45px rgb(0 0 0 / 22%);
   --focus-ring: 0 0 0 4px rgb(232 71 43 / 24%);
 }
 
@@ -36,10 +34,7 @@ body {
   min-height: 100vh;
   color: var(--text);
   font-family: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background:
-    radial-gradient(circle at 12% -8%, rgb(232 71 43 / 16%) 0 18%, transparent 42%),
-    radial-gradient(circle at 82% 6%, rgb(79 184 166 / 10%) 0 13%, transparent 34%),
-    linear-gradient(180deg, var(--panel) 0%, var(--cinema) 36%, var(--cinema) 100%);
+  background: var(--cinema);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -85,11 +80,8 @@ p {
   gap: 28px;
   padding: 30px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background:
-    linear-gradient(135deg, rgb(245 241 236 / 5%) 0%, transparent 34%),
-    linear-gradient(180deg, var(--panel) 0%, var(--cinema) 100%);
-  box-shadow: var(--shadow-panel);
+  border-radius: 0 0 var(--radius-screen) var(--radius-screen);
+  background: var(--panel);
   overflow: hidden;
 }
 
@@ -106,10 +98,9 @@ p {
   left: 28px;
   right: 28px;
   top: 0;
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0.8;
+  height: 4px;
+  background: var(--accent);
+  opacity: 0.9;
 }
 
 .brand,
@@ -128,7 +119,7 @@ p {
   flex: 0 0 auto;
   border-radius: 24px;
   background: var(--black);
-  box-shadow: 0 18px 42px rgb(0 0 0 / 34%);
+  border: 1px solid var(--border);
 }
 
 .eyebrow {
@@ -143,7 +134,7 @@ p {
 h1 {
   margin-bottom: 8px;
   color: var(--text);
-  font-size: clamp(48px, 7vw, 86px);
+  font-size: clamp(58px, 8vw, 104px);
   font-weight: 900;
   letter-spacing: -0.02em;
   line-height: 0.94;
@@ -164,12 +155,11 @@ h1 {
   display: grid;
   grid-template-columns: auto minmax(92px, auto) auto;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
+  gap: 0;
+  padding: 0;
   border: 1px solid var(--border);
-  border-radius: 999px;
-  background: rgb(14 13 13 / 78%);
-  box-shadow: inset 0 0 0 1px rgb(245 241 236 / 3%);
+  border-radius: 2px;
+  background: var(--cinema);
 }
 
 .showtimeBar span,
@@ -177,21 +167,33 @@ h1 {
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 
 .showtimeBar span {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0 14px;
+  border-right: 1px solid var(--border);
   color: var(--muted);
 }
 
 .status {
-  min-width: 92px;
-  padding: 8px 13px;
-  border-radius: 999px;
+  min-width: 96px;
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0 14px;
+  border-radius: 0;
   color: var(--text);
-  background: var(--panel);
+  background: var(--accent);
   text-align: center;
+}
+
+.showtimeBar span:last-child {
+  border-right: 0;
 }
 
 .status[data-tone="success"] {
@@ -219,14 +221,31 @@ h1 {
 .aboutLinks,
 .feedbackContact {
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-panel);
   background: rgb(28 26 25 / 92%);
-  box-shadow: var(--shadow-panel);
 }
 
 .composer {
   margin-bottom: 24px;
   padding: 24px;
+  border-radius: 3px;
+}
+
+.queue {
+  border-radius: 0;
+}
+
+.feedbackPanel,
+.closingNote {
+  border-radius: 12px;
+}
+
+.creatorSignature {
+  border-radius: 2px 0 0 2px;
+}
+
+.infoCards a {
+  border-radius: 0 2px 2px 0;
 }
 
 .composerHeader {
@@ -270,7 +289,7 @@ textarea {
   max-height: 260px;
   padding: 20px 22px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-panel);
   color: var(--text);
   background: var(--panel-deep);
   outline: none;
@@ -292,7 +311,7 @@ textarea:focus {
   margin: 0;
   padding: 10px 14px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   color: var(--muted);
   background: var(--panel-deep);
   font-size: 13px;
@@ -323,10 +342,10 @@ textarea:focus {
 .backLink,
 .aboutLinks a {
   border: 0;
-  border-radius: var(--radius);
+  border-radius: 6px;
   font-weight: 850;
   cursor: pointer;
-  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 
 .speechButton,
@@ -336,7 +355,6 @@ textarea:focus {
   padding: 0 16px;
   color: var(--text);
   background: var(--accent);
-  box-shadow: 0 14px 32px rgb(232 71 43 / 20%);
 }
 
 .speechButton {
@@ -344,16 +362,6 @@ textarea:focus {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  animation: micPulse 2.6s ease-in-out infinite;
-}
-
-@keyframes micPulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgb(232 71 43 / 18%), 0 14px 32px rgb(232 71 43 / 20%);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgb(232 71 43 / 0%), 0 14px 32px rgb(232 71 43 / 20%);
-  }
 }
 
 .buttonIcon {
@@ -369,7 +377,7 @@ textarea:focus {
 
 .feedbackForm button {
   background: var(--panel-soft);
-  box-shadow: inset 0 0 0 1px var(--border);
+  border: 1px solid var(--border);
 }
 
 .speechButton:hover,
@@ -380,7 +388,7 @@ textarea:focus {
 .aboutLinks a:hover,
 .infoCards a:hover,
 .feedbackContact:hover {
-  transform: translateY(-1px);
+  border-color: var(--accent);
 }
 
 .speechButton:hover,
@@ -393,14 +401,11 @@ textarea:focus {
 .feedbackForm button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
-  transform: none;
-  box-shadow: none;
 }
 
 .speechButton[data-active="true"] {
   background: var(--success);
   color: var(--cinema);
-  animation: none;
 }
 
 .player {
@@ -418,11 +423,8 @@ textarea:focus {
 .preview {
   min-height: 620px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background:
-    linear-gradient(180deg, rgb(245 241 236 / 5%), transparent 34%),
-    var(--black);
-  box-shadow: var(--shadow-screen);
+  border-radius: var(--radius-screen);
+  background: var(--black);
   overflow: hidden;
 }
 
@@ -456,7 +458,7 @@ textarea:focus {
   margin: 0 auto 12px;
   border-radius: 30px;
   background: url("mark.svg") center / cover no-repeat;
-  box-shadow: 0 24px 62px rgb(0 0 0 / 44%);
+  border: 1px solid var(--border);
 }
 
 .emptyState strong {
@@ -493,9 +495,7 @@ textarea:focus {
 
 .mediaFrame {
   position: relative;
-  background:
-    linear-gradient(180deg, rgb(245 241 236 / 5%), transparent 30%),
-    var(--black);
+  background: var(--black);
 }
 
 .mediaFrame::before {
@@ -649,43 +649,60 @@ textarea:focus {
   position: relative;
   display: grid;
   width: 100%;
-  grid-template-columns: 48px minmax(0, 1fr);
-  gap: 13px;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 14px;
   align-items: center;
-  min-height: 78px;
-  padding: 12px 14px;
+  min-height: 82px;
+  padding: 12px 18px 12px 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ticket);
   color: var(--text);
-  background: var(--panel-soft);
+  background:
+    radial-gradient(circle at right 20px, transparent 0 9px, var(--panel) 10px),
+    radial-gradient(circle at right calc(100% - 20px), transparent 0 9px, var(--panel) 10px);
   text-align: left;
   cursor: pointer;
   overflow: hidden;
-  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.cardButton::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 58px;
+  border-right: 1px dashed rgb(156 147 138 / 44%);
+  background: rgb(245 241 236 / 4%);
 }
 
 .cardButton::after {
   content: "";
   position: absolute;
   top: 12px;
-  bottom: 12px;
-  left: 66px;
-  border-left: 1px dashed rgb(156 147 138 / 36%);
+  right: -10px;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--cinema);
+  box-shadow: 0 38px 0 var(--cinema), 0 38px 0 1px var(--border);
 }
 
 .cardButton:hover,
 .cardButton[aria-current="true"] {
   border-color: var(--accent);
   background: var(--panel);
-  transform: translateY(-1px);
 }
 
 .order {
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
+  width: 34px;
+  height: 52px;
+  margin-left: 6px;
+  border-radius: 2px;
   color: var(--cinema);
   background: var(--text);
   font-family: var(--mono);
@@ -699,6 +716,8 @@ textarea:focus {
 
 .cardButton strong,
 .cardButton small {
+  position: relative;
+  z-index: 1;
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -720,7 +739,7 @@ textarea:focus {
   min-height: 64px;
   padding: 13px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 2px;
   background: var(--black);
 }
 
@@ -822,9 +841,7 @@ textarea:focus {
 .closingNote {
   margin-top: 24px;
   padding: 30px 34px;
-  background:
-    linear-gradient(135deg, rgb(232 71 43 / 10%) 0%, transparent 38%),
-    var(--panel);
+  background: var(--panel);
 }
 
 .closingNote span {
@@ -902,7 +919,7 @@ textarea:focus {
   padding: 24px;
   color: var(--text);
   text-decoration: none;
-  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  transition: border-color 120ms ease, background 120ms ease;
 }
 
 .infoCards a:hover {
@@ -989,14 +1006,14 @@ textarea:focus {
 .aboutGrid span {
   display: inline-grid;
   place-items: center;
-  width: 40px;
+  width: fit-content;
   height: 40px;
   margin-bottom: 20px;
-  border-radius: 50%;
+  padding: 0 13px;
+  border-radius: 2px;
   color: var(--text);
   background: var(--accent);
-  font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 900;
 }
 
@@ -1097,7 +1114,7 @@ textarea:focus {
 
 .feedbackContact {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr) auto;
   align-items: center;
   gap: 18px;
   min-height: 104px;
@@ -1105,7 +1122,7 @@ textarea:focus {
   padding: 24px;
   color: var(--text);
   text-decoration: none;
-  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  transition: border-color 120ms ease, background 120ms ease;
 }
 
 .feedbackContact:hover {
@@ -1114,27 +1131,45 @@ textarea:focus {
 }
 
 .feedbackContact::before {
-  content: "Talk";
+  content: "톡";
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
+  width: 64px;
+  height: 64px;
+  border-radius: 2px;
   color: var(--text);
   background: var(--accent);
-  font-family: var(--mono);
-  font-size: 13px;
+  font-size: 24px;
   font-weight: 900;
 }
 
 .feedbackContact strong {
-  display: block;
-  margin-top: 5px;
+  display: inline;
+  margin-top: 0;
   color: var(--text);
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 900;
   letter-spacing: -0.02em;
-  line-height: 1.35;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.feedbackContact div {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  min-width: 0;
+}
+
+.feedbackContact div span {
+  white-space: nowrap;
+}
+
+.feedbackContact small {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .aboutLinks {
@@ -1277,7 +1312,7 @@ textarea:focus {
     grid-template-columns: 1fr;
     align-items: stretch;
     width: 100%;
-    border-radius: 18px;
+    border-radius: 2px;
   }
 
   .showtimeBar span,
@@ -1290,22 +1325,6 @@ textarea:focus {
     gap: 6px;
   }
 
-  .composer,
-  .queue,
-  .feedbackPanel,
-  .closingNote,
-  .creatorSignature,
-  .infoCards a,
-  .aboutGrid article,
-  .flowList article,
-  .splitPanel article,
-  .questionGrid article,
-  .impactGrid article,
-  .aboutLinks,
-  .feedbackContact {
-    border-radius: 20px;
-  }
-
   .actionStack {
     grid-template-columns: 1fr;
   }
@@ -1315,7 +1334,23 @@ textarea:focus {
   }
 
   .feedbackContact {
-    grid-template-columns: 1fr;
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .feedbackContact::before {
+    width: 52px;
+    height: 52px;
+    font-size: 20px;
+  }
+
+  .feedbackContact strong,
+  .feedbackContact small {
+    white-space: normal;
+  }
+
+  .feedbackContact div {
+    display: grid;
+    gap: 4px;
   }
 
   .preview,
