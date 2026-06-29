@@ -912,6 +912,39 @@ async function searchCultureApis(query) {
   };
 }
 
+function getKslTokensForFeedback(plan) {
+  const kslOrder = Array.isArray(plan?.ksl?.ksl_syntax_order) ? plan.ksl.ksl_syntax_order : [];
+  if (kslOrder.length) return kslOrder;
+  return Array.isArray(plan?.terms) ? plan.terms.map(item => item.term).filter(Boolean) : [];
+}
+
+function buildFeedbackLogPayload(originalText, plan) {
+  return {
+    originalText,
+    kslTokens: getKslTokensForFeedback(plan)
+  };
+}
+
+function sendFeedbackLog(payload) {
+  const webhookUrl = process.env.FEEDBACK_LOG_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  fetch(webhookUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+    .then(async response => {
+      const contentType = response.headers.get("content-type") || "";
+      if (!response.ok || !contentType.includes("application/json")) {
+        throw new Error(`Feedback log webhook returned ${response.status || "non-json"}`);
+      }
+    })
+    .catch(error => {
+      console.warn("Feedback log webhook failed", error.message);
+    });
+}
+
 async function handleApi(req, res, url) {
   try {
     if (req.method === "GET" && url.pathname === "/api/media/video") {
@@ -965,6 +998,8 @@ async function handleApi(req, res, url) {
           originalResult.warnings = fallback.warnings;
         }
       }
+
+      sendFeedbackLog(buildFeedbackLogPayload(originalText, plan));
 
       return sendJson(res, 200, { terms, planner: plan, results });
     }

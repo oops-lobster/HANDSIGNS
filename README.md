@@ -78,6 +78,7 @@ CULTURE_API_INTEGRATED_KEY=
 CULTURE_API_LIFE_KEY=
 CULTURE_API_SPECIALIZED_KEY=
 CULTURE_API_CULTURE_KEY=
+FEEDBACK_LOG_WEBHOOK_URL=
 ```
 
 API endpoint defaults are already included in `server.js`, but they can be overridden in `.env` if needed.
@@ -97,6 +98,8 @@ http://127.0.0.1:3000
 If `GEMINI_API_KEY` / `GEMINI_API_KEYS` is missing, invalid, or quota-limited, the app stops translation and returns an unavailable state instead of falling back to basic splitting. This keeps the MVP from showing misleading sign results when semantic parsing is unavailable. If sign API keys are missing, the app runs in preview mode without real media.
 
 `GEMINI_API_KEYS` can contain multiple Gemini keys separated by commas. The server rotates through them and falls back to the next key when a key is quota-limited or invalid. `GEMINI_API_KEY` is still supported for single-key setups.
+
+Set `FEEDBACK_LOG_WEBHOOK_URL` to a Google Apps Script Web App URL to save each successful translation as a lightweight feedback row. The app sends only the original text and the parsed KSL tokens.
 
 Gemini calls are protected in two ways:
 
@@ -147,6 +150,7 @@ CULTURE_API_INTEGRATED_KEY=
 CULTURE_API_LIFE_KEY=
 CULTURE_API_SPECIALIZED_KEY=
 CULTURE_API_CULTURE_KEY=
+FEEDBACK_LOG_WEBHOOK_URL=
 ```
 
 Vercel should use the default install command and the `vercel-build` script. The app runs through `server.js`, which exports a Vercel-compatible handler and still supports local development with `npm run dev`.
