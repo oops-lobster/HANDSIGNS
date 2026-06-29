@@ -921,7 +921,8 @@ function getKslTokensForFeedback(plan) {
 function buildFeedbackLogPayload(originalText, plan) {
   return {
     originalText,
-    kslTokens: getKslTokensForFeedback(plan)
+    kslTokens: getKslTokensForFeedback(plan),
+    feedback: ""
   };
 }
 
@@ -956,6 +957,21 @@ async function handleApi(req, res, url) {
       const query = url.searchParams.get("q")?.trim();
       if (!query) return sendJson(res, 400, { error: "Missing q query parameter." });
       return sendJson(res, 200, await searchCultureApis(query));
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/feedback") {
+      const body = JSON.parse((await readBody(req)) || "{}");
+      const originalText = normalizeSearchText(String(body.originalText || ""));
+      const feedback = String(body.feedback || "").trim();
+      const kslTokens = Array.isArray(body.kslTokens)
+        ? body.kslTokens.map(token => String(token || "").trim()).filter(Boolean)
+        : [];
+
+      if (!originalText) return sendJson(res, 400, { error: "Missing originalText." });
+      if (!feedback) return sendJson(res, 400, { error: "Missing feedback." });
+
+      sendFeedbackLog({ originalText, kslTokens, feedback });
+      return sendJson(res, 200, { ok: true });
     }
 
     if (req.method === "POST" && url.pathname === "/api/signs/translate") {

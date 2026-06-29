@@ -11,6 +11,10 @@ const playButton = document.querySelector("#playButton");
 const nextButton = document.querySelector("#nextButton");
 const plannerSource = document.querySelector("#plannerSource");
 const plannerTokens = document.querySelector("#plannerTokens");
+const feedbackPanel = document.querySelector("#feedbackPanel");
+const feedbackForm = document.querySelector("#feedbackForm");
+const feedbackInput = document.querySelector("#feedbackInput");
+const feedbackStatus = document.querySelector("#feedbackStatus");
 
 const apiBaseUrl = window.HANDSIGNS_API_BASE_URL || "";
 const videoLoadTimeoutMs = 6500;
@@ -28,6 +32,7 @@ let isAutoPlaying = false;
 let mediaTimer = null;
 let recognition = null;
 let isListening = false;
+let latestFeedbackContext = null;
 
 function escapeHtml(value) {
   return String(value || "")
@@ -172,6 +177,29 @@ function renderPlanner(plan) {
   plannerTokens.innerHTML = tokens.length
     ? tokens.map(token => `<span data-kind="${kslOrder.includes(token) ? "ksl" : "term"}">${escapeHtml(token)}</span>`).join("")
     : "<span>문장을 입력하면 표시됩니다.</span>";
+}
+
+function getPlannerTokens(plan) {
+  const kslOrder = Array.isArray(plan?.ksl?.ksl_syntax_order) ? plan.ksl.ksl_syntax_order : [];
+  if (kslOrder.length) return kslOrder;
+  return Array.isArray(plan?.terms) ? plan.terms.map(item => item.term).filter(Boolean) : [];
+}
+
+function resetFeedbackPanel() {
+  latestFeedbackContext = null;
+  if (feedbackPanel) feedbackPanel.dataset.visible = "false";
+  if (feedbackInput) feedbackInput.value = "";
+  if (feedbackStatus) feedbackStatus.textContent = "대기";
+}
+
+function showFeedbackPanel(originalText, plan) {
+  latestFeedbackContext = {
+    originalText,
+    kslTokens: getPlannerTokens(plan)
+  };
+  if (feedbackPanel) feedbackPanel.dataset.visible = "true";
+  if (feedbackInput) feedbackInput.value = "";
+  if (feedbackStatus) feedbackStatus.textContent = "대기";
 }
 
 function showEmptyState(title, message) {
@@ -411,6 +439,23 @@ async function translate(text) {
   return data;
 }
 
+async function submitFeedback(feedback) {
+  const response = await fetch(`${apiBaseUrl}/api/feedback`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      ...latestFeedbackContext,
+      feedback
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "피드백 저장에 실패했습니다.");
+  }
+  return data;
+}
+
 prevButton.addEventListener("click", () => {
   isAutoPlaying = false;
   showPreview(activeIndex - 1);
@@ -439,6 +484,7 @@ form.addEventListener("submit", async event => {
   activeIndex = 0;
   renderTimeline();
   renderPlanner(null);
+  resetFeedbackPanel();
 
   try {
     const data = await translate(text);
@@ -464,6 +510,7 @@ form.addEventListener("submit", async event => {
       return;
     }
 
+    showFeedbackPanel(text, data.planner);
     isAutoPlaying = true;
     showPreview(0, { autoplay: true });
 
@@ -500,3 +547,35 @@ form.addEventListener("submit", async event => {
     }
   }
 });
+
+if (feedbackForm) {
+  feedbackForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const feedback = feedbackInput?.value.trim() || "";
+
+    if (!latestFeedbackContext) {
+      if (feedbackStatus) feedbackStatus.textContent = "결과 없음";
+      return;
+    }
+
+    if (!feedback) {
+      if (feedbackStatus) feedbackStatus.textContent = "메모 필요";
+      feedbackInput?.focus();
+      return;
+    }
+
+    const button = feedbackForm.querySelector("button");
+    if (button) button.disabled = true;
+    if (feedbackStatus) feedbackStatus.textContent = "저장 중";
+
+    try {
+      await submitFeedback(feedback);
+      if (feedbackStatus) feedbackStatus.textContent = "저장됨";
+      if (feedbackInput) feedbackInput.value = "";
+    } catch {
+      if (feedbackStatus) feedbackStatus.textContent = "실패";
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
+}

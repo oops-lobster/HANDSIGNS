@@ -993,6 +993,86 @@ textarea:focus {
   background: var(--accent-soft);
 }
 
+.feedbackPanel {
+  display: none;
+  gap: 14px;
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid rgb(33 122 112 / 18%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 84%);
+  box-shadow: var(--shadow-soft);
+}
+
+.feedbackPanel[data-visible="true"] {
+  display: grid;
+}
+
+.feedbackPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.feedbackPanelHeader strong,
+.feedbackPanelHeader span {
+  display: block;
+}
+
+.feedbackPanelHeader strong {
+  margin-bottom: 4px;
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.feedbackPanelHeader span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 760;
+}
+
+#feedbackStatus {
+  flex: 0 0 auto;
+  min-width: 74px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.feedbackForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 142px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.feedbackForm textarea {
+  min-height: 86px;
+  max-height: 180px;
+}
+
+.feedbackForm button {
+  min-height: 86px;
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  background:
+    linear-gradient(180deg, #23897e 0%, var(--accent-strong) 100%);
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgb(17 93 85 / 18%);
+}
+
+.feedbackForm button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .closingNote {
   margin-top: 22px;
   padding: 22px 24px;
@@ -1081,6 +1161,14 @@ textarea:focus {
 
   .creatorSignature {
     min-height: 120px;
+  }
+
+  .feedbackForm {
+    grid-template-columns: 1fr;
+  }
+
+  .feedbackForm button {
+    min-height: 54px;
   }
 
   .infoCards {
