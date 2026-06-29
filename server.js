@@ -309,6 +309,21 @@ function dictionaryTermVariants(term) {
     if (normalizedValue && !variants.includes(normalizedValue)) variants.push(normalizedValue);
   };
 
+  const exactMap = new Map([
+    ["안녕하세요", ["안녕"]],
+    ["안녕하십니까", ["안녕"]],
+    ["안녕히가십시오", ["안녕"]],
+    ["안녕히계세요", ["안녕"]],
+    ["반갑습니다", ["반갑다"]],
+    ["고맙습니다", ["고맙다"]],
+    ["감사합니다", ["감사"]],
+    ["죄송합니다", ["미안"]]
+  ]);
+  const compact = compactSearchText(normalized);
+  if (exactMap.has(compact)) {
+    exactMap.get(compact).forEach(add);
+  }
+
   if (normalized === "좋아하다" || normalized === "조아하다") {
     add("좋다");
   }
@@ -347,14 +362,20 @@ function buildSearchTerms(text) {
   const words = normalized.split(/\s+/).filter(Boolean);
   const terms = [];
 
-  if (normalized) terms.push({ term: normalized, type: "phrase" });
+  const addWithVariants = (term, type) => {
+    dictionaryTermVariants(term).forEach((variant, index) => {
+      terms.push({ term: variant, type: index === 0 ? type : `${type}_variant` });
+    });
+  };
+
+  if (normalized) addWithVariants(normalized, "phrase");
   for (const word of words) {
     const stripped = stripTrailingParticle(word);
     if (stripped && stripped !== word) {
-      terms.push({ term: stripped, type: "word" });
+      addWithVariants(stripped, "word");
       continue;
     }
-    if (word !== normalized) terms.push({ term: word, type: "word" });
+    if (word !== normalized) addWithVariants(word, "word");
   }
 
   const seen = new Set();
@@ -568,7 +589,16 @@ async function planSignTerms(text) {
 
     throw lastError || new Error("Gemini planning failed.");
   } catch (error) {
-    return geminiUnavailablePlan(text, error.message, geminiUnavailableReason(error.message));
+    const reason = geminiUnavailableReason(error.message);
+    if (reason === "unavailable") {
+      return {
+        ...fallbackPlan(text),
+        reason,
+        originalText: normalized,
+        error: error.message
+      };
+    }
+    return geminiUnavailablePlan(text, error.message, reason);
   }
 }
 
@@ -806,13 +836,20 @@ function wait(ms) {
 }
 
 async function searchOneSourceWithRetry(source, query) {
-  try {
-    return await searchOneSource(source, query);
-  } catch (firstError) {
-    if (firstError.status === 401) throw firstError;
-    await wait(250);
-    return searchOneSource(source, query);
+  let lastError = null;
+  const retryDelays = [0, 300, 800];
+
+  for (let attempt = 0; attempt < retryDelays.length; attempt += 1) {
+    if (retryDelays[attempt]) await wait(retryDelays[attempt]);
+    try {
+      return await searchOneSource(source, query);
+    } catch (error) {
+      if (error.status === 401) throw error;
+      lastError = error;
+    }
   }
+
+  throw lastError || new Error(`${source.name} request failed`);
 }
 
 function dedupeEntries(entries) {
@@ -890,11 +927,25 @@ async function searchCultureApis(query) {
     };
   }
 
-  const settled = await Promise.all(
-    sources.map(source => searchOneSourceWithRetry(source, query)
-      .then(entries => ({ source, entries, error: null }))
-      .catch(error => ({ source, entries: [], error })))
-  );
+  const settled = [];
+  const prioritizedSources = [...sources].sort((a, b) => (sourcePriority[a.id] ?? 99) - (sourcePriority[b.id] ?? 99));
+
+  for (const source of prioritizedSources) {
+    try {
+      const entries = await searchOneSourceWithRetry(source, query);
+      settled.push({ source, entries, error: null });
+    } catch (error) {
+      if (process.env.DEBUG_CULTURE_API === "true") {
+        console.warn("Culture API search failed", {
+          source: source.id,
+          status: error.status || null,
+          message: error.message,
+          body: error.body || ""
+        });
+      }
+      settled.push({ source, entries: [], error });
+    }
+  }
   const authErrors = settled.filter(result => result.error?.status === 401);
   const otherErrors = settled.filter(result => result.error && result.error.status !== 401);
   const entries = sortEntries(filterEntriesForQuery(dedupeEntries(settled.flatMap(result => result.entries)), query), query);
