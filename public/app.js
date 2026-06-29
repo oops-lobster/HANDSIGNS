@@ -32,6 +32,7 @@ let isAutoPlaying = false;
 let mediaTimer = null;
 let recognition = null;
 let isListening = false;
+let speechStopTimer = null;
 let latestFeedbackContext = null;
 
 function escapeHtml(value) {
@@ -221,6 +222,20 @@ function setSpeechState(message, active = false) {
   }
 }
 
+function clearSpeechStopTimer() {
+  if (speechStopTimer) {
+    window.clearTimeout(speechStopTimer);
+    speechStopTimer = null;
+  }
+}
+
+function finishSpeechRecognition(message, statusMessage = "준비됨", tone = "neutral") {
+  isListening = false;
+  clearSpeechStopTimer();
+  setSpeechState(message, false);
+  setStatus(statusMessage, tone);
+}
+
 function appendRecognizedText(text) {
   const normalized = text.trim();
   if (!normalized) return;
@@ -246,6 +261,7 @@ function setupSpeechRecognition() {
   recognition.maxAlternatives = 3;
 
   recognition.addEventListener("start", () => {
+    clearSpeechStopTimer();
     isListening = true;
     setStatus("듣는 중", "warning");
     setSpeechState("듣는 중입니다. 다시 누르면 입력이 끝납니다.", true);
@@ -269,17 +285,19 @@ function setupSpeechRecognition() {
   });
 
   recognition.addEventListener("error", event => {
-    isListening = false;
     const message = event.error === "not-allowed"
       ? "마이크 권한이 필요합니다."
       : "음성을 인식하지 못했습니다. 다시 시도해 주세요.";
-    setSpeechState(message);
-    setStatus("음성 실패", "warning");
+    finishSpeechRecognition(message, "음성 실패", "warning");
   });
 
   recognition.addEventListener("end", () => {
-    isListening = false;
-    setSpeechState(input.value.trim() ? "문장을 확인한 뒤 수어 변환을 눌러주세요." : "음성 입력이 끝났습니다.");
+    const hasText = Boolean(input.value.trim());
+    finishSpeechRecognition(
+      hasText ? "문장을 확인한 뒤 수어 변환을 눌러주세요." : "음성 입력이 끝났습니다.",
+      hasText ? "확인 필요" : "준비됨",
+      hasText ? "warning" : "neutral"
+    );
   });
 
   speechButton.addEventListener("click", () => {
@@ -287,14 +305,17 @@ function setupSpeechRecognition() {
 
     if (isListening) {
       recognition.stop();
-      setSpeechState("음성 입력을 멈췄습니다.");
+      finishSpeechRecognition("음성 입력을 멈췄습니다. 문장을 확인한 뒤 수어 변환을 눌러주세요.", "확인 필요", "warning");
+      speechStopTimer = window.setTimeout(() => {
+        if (!isListening) setSpeechState(input.value.trim() ? "문장을 확인한 뒤 수어 변환을 눌러주세요." : "음성 입력이 끝났습니다.");
+      }, 800);
       return;
     }
 
     try {
       recognition.start();
     } catch {
-      setSpeechState("이미 음성을 듣고 있습니다.", true);
+      finishSpeechRecognition("음성 입력을 다시 시도해 주세요.", "준비됨");
     }
   });
 }
