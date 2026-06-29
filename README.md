@@ -73,6 +73,7 @@ Fill in the API keys:
 
 ```bash
 GEMINI_API_KEY=
+GEMINI_API_KEYS=
 CULTURE_API_INTEGRATED_KEY=
 CULTURE_API_LIFE_KEY=
 CULTURE_API_SPECIALIZED_KEY=
@@ -93,7 +94,9 @@ Open:
 http://127.0.0.1:3000
 ```
 
-If `GEMINI_API_KEY` is missing, invalid, or quota-limited, the app stops translation and returns an unavailable state instead of falling back to basic splitting. This keeps the MVP from showing misleading sign results when semantic parsing is unavailable. If sign API keys are missing, the app runs in preview mode without real media.
+If `GEMINI_API_KEY` / `GEMINI_API_KEYS` is missing, invalid, or quota-limited, the app stops translation and returns an unavailable state instead of falling back to basic splitting. This keeps the MVP from showing misleading sign results when semantic parsing is unavailable. If sign API keys are missing, the app runs in preview mode without real media.
+
+`GEMINI_API_KEYS` can contain multiple Gemini keys separated by commas. The server rotates through them and falls back to the next key when a key is quota-limited or invalid. `GEMINI_API_KEY` is still supported for single-key setups.
 
 Gemini calls are protected in two ways:
 
@@ -139,6 +142,7 @@ Create a Vercel project from the GitHub repository or deploy with the Vercel CLI
 
 ```bash
 GEMINI_API_KEY=
+GEMINI_API_KEYS=
 CULTURE_API_INTEGRATED_KEY=
 CULTURE_API_LIFE_KEY=
 CULTURE_API_SPECIALIZED_KEY=

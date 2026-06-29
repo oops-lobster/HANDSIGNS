@@ -16,6 +16,7 @@ const geminiRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_MINU
 const geminiPlanCacheTtlMs = Number(process.env.GEMINI_PLAN_CACHE_TTL_MS || 6 * 60 * 60 * 1000);
 const geminiRequestWindow = globalThis.__handsignsGeminiRequestWindow || [];
 const geminiPlanCache = globalThis.__handsignsGeminiPlanCache || new Map();
+globalThis.__handsignsGeminiKeyCursor = globalThis.__handsignsGeminiKeyCursor || 0;
 globalThis.__handsignsGeminiRequestWindow = geminiRequestWindow;
 globalThis.__handsignsGeminiPlanCache = geminiPlanCache;
 
@@ -402,6 +403,24 @@ function setCachedGeminiPlan(cacheKey, plan) {
   });
 }
 
+function getGeminiApiKeys() {
+  const keys = [
+    ...String(process.env.GEMINI_API_KEYS || "").split(/[\s,]+/),
+    process.env.GEMINI_API_KEY
+  ]
+    .map(key => String(key || "").trim())
+    .filter(Boolean);
+
+  return [...new Set(keys)];
+}
+
+function getRotatedGeminiApiKeys(keys) {
+  if (!keys.length) return [];
+  const start = globalThis.__handsignsGeminiKeyCursor % keys.length;
+  globalThis.__handsignsGeminiKeyCursor = (globalThis.__handsignsGeminiKeyCursor + 1) % keys.length;
+  return [...keys.slice(start), ...keys.slice(0, start)];
+}
+
 function geminiUnavailableReason(message) {
   const normalized = String(message || "").toLowerCase();
   if (normalized.includes("429") || normalized.includes("quota") || normalized.includes("rate-limit") || normalized.includes("rate limit")) {
@@ -465,8 +484,8 @@ function extractJson(text) {
 }
 
 async function planSignTerms(text) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return geminiUnavailablePlan(text, "Gemini API key is not configured.", "key_missing");
+  const apiKeys = getGeminiApiKeys();
+  if (!apiKeys.length) return geminiUnavailablePlan(text, "Gemini API key is not configured.", "key_missing");
 
   const normalized = normalizeSearchText(text);
   if (!normalized) return fallbackPlan(text);
@@ -487,56 +506,67 @@ async function planSignTerms(text) {
       );
     }
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-goog-api-key": apiKey
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{
-            text: kslPreprocessPrompt
-          }]
-        },
-        contents: [{
-          role: "user",
-          parts: [{
-            text: normalized
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.1
+    let lastError = null;
+    for (const apiKey of getRotatedGeminiApiKeys(apiKeys)) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-goog-api-key": apiKey
+          },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{
+                text: kslPreprocessPrompt
+              }]
+            },
+            contents: [{
+              role: "user",
+              parts: [{
+                text: normalized
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.1
+            }
+          })
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(`Gemini planning failed with ${response.status}: ${JSON.stringify(payload).slice(0, 300)}`);
         }
-      })
-    });
 
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(`Gemini planning failed with ${response.status}: ${JSON.stringify(payload).slice(0, 300)}`);
+        const outputText = payload.candidates?.[0]?.content?.parts
+          ?.map(part => part.text || "")
+          .join("\n");
+        const parsed = extractJson(outputText);
+        if (parsed?.status === "error") {
+          throw new Error(parsed.error_message || "Gemini returned an error status.");
+        }
+
+        const normalizedTerms = termsFromKslPlan(parsed, text);
+        if (!normalizedTerms.length) {
+          throw new Error("Gemini did not return searchable KSL tokens.");
+        }
+
+        const plan = {
+          source: "gemini",
+          model,
+          ksl: parsed,
+          terms: normalizedTerms
+        };
+        setCachedGeminiPlan(cacheKey, plan);
+        return plan;
+      } catch (error) {
+        lastError = error;
+        const reason = geminiUnavailableReason(error.message);
+        if (reason !== "quota_exhausted" && reason !== "key_invalid") break;
+      }
     }
 
-    const outputText = payload.candidates?.[0]?.content?.parts
-      ?.map(part => part.text || "")
-      .join("\n");
-    const parsed = extractJson(outputText);
-    if (parsed?.status === "error") {
-      throw new Error(parsed.error_message || "Gemini returned an error status.");
-    }
-
-    const normalizedTerms = termsFromKslPlan(parsed, text);
-    if (!normalizedTerms.length) {
-      throw new Error("Gemini did not return searchable KSL tokens.");
-    }
-
-    const plan = {
-      source: "gemini",
-      model,
-      ksl: parsed,
-      terms: normalizedTerms
-    };
-    setCachedGeminiPlan(cacheKey, plan);
-    return plan;
+    throw lastError || new Error("Gemini planning failed.");
   } catch (error) {
     return geminiUnavailablePlan(text, error.message, geminiUnavailableReason(error.message));
   }
