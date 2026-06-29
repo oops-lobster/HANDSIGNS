@@ -28,7 +28,6 @@ let isAutoPlaying = false;
 let mediaTimer = null;
 let recognition = null;
 let isListening = false;
-let shouldSubmitAfterSpeech = false;
 
 function escapeHtml(value) {
   return String(value || "")
@@ -216,6 +215,7 @@ function setupSpeechRecognition() {
   recognition.lang = "ko-KR";
   recognition.interimResults = true;
   recognition.continuous = false;
+  recognition.maxAlternatives = 3;
 
   recognition.addEventListener("start", () => {
     isListening = true;
@@ -237,7 +237,6 @@ function setupSpeechRecognition() {
     const hasFinalResult = Array.from(event.results).some(result => result.isFinal);
     if (hasFinalResult && transcript) {
       appendRecognizedText(transcript);
-      shouldSubmitAfterSpeech = true;
     }
   });
 
@@ -252,20 +251,13 @@ function setupSpeechRecognition() {
 
   recognition.addEventListener("end", () => {
     isListening = false;
-    const shouldSubmit = shouldSubmitAfterSpeech;
-    shouldSubmitAfterSpeech = false;
-    setSpeechState(shouldSubmit ? "음성 인식 완료. 수어로 변환합니다." : "음성 입력이 끝났습니다.");
-
-    if (shouldSubmit) {
-      form.requestSubmit();
-    }
+    setSpeechState(input.value.trim() ? "문장을 확인한 뒤 수어 변환을 눌러주세요." : "음성 입력이 끝났습니다.");
   });
 
   speechButton.addEventListener("click", () => {
     if (!recognition) return;
 
     if (isListening) {
-      shouldSubmitAfterSpeech = false;
       recognition.stop();
       setSpeechState("음성 입력을 멈췄습니다.");
       return;
@@ -413,6 +405,7 @@ async function translate(text) {
   if (!response.ok) {
     const error = new Error(data.error || "변환에 실패했습니다.");
     error.reason = data.reason;
+    error.retryAfterSeconds = data.retryAfterSeconds;
     throw error;
   }
   return data;
@@ -487,8 +480,13 @@ form.addEventListener("submit", async event => {
     }
   } catch (error) {
     const quotaExhausted = error.reason === "quota_exhausted";
+    const rateLimited = error.reason === "rate_limited";
     isAutoPlaying = false;
-    if (quotaExhausted) {
+    if (rateLimited) {
+      const retryAfter = Number(error.retryAfterSeconds || 60);
+      setStatus("소모 제한", "warning");
+      showEmptyState("잠시 후 다시 시도해 주세요.", `Gemini 토큰 보호를 위해 1분에 15번까지만 변환합니다. 약 ${retryAfter}초 뒤 다시 시도할 수 있습니다.`);
+    } else if (quotaExhausted) {
       setStatus("사용 불가", "warning");
       showEmptyState("지금은 수어 변환을 사용할 수 없습니다.", "Gemini 사용량이 모두 소진되어 변환 준비가 멈췄습니다. 새 API 키가 반영된 뒤 다시 시도해 주세요.");
     } else {

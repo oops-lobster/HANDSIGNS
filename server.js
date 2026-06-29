@@ -11,6 +11,13 @@ await loadEnv(join(rootDir, ".env"));
 
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || "127.0.0.1";
+const geminiRateLimitWindowMs = 60_000;
+const geminiRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_MINUTE || 15);
+const geminiPlanCacheTtlMs = Number(process.env.GEMINI_PLAN_CACHE_TTL_MS || 6 * 60 * 60 * 1000);
+const geminiRequestWindow = globalThis.__handsignsGeminiRequestWindow || [];
+const geminiPlanCache = globalThis.__handsignsGeminiPlanCache || new Map();
+globalThis.__handsignsGeminiRequestWindow = geminiRequestWindow;
+globalThis.__handsignsGeminiPlanCache = geminiPlanCache;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -239,6 +246,36 @@ function readBody(req) {
   });
 }
 
+function checkGeminiRateLimit(now = Date.now()) {
+  if (geminiRateLimitMaxRequests <= 0) {
+    return {
+      allowed: false,
+      limit: geminiRateLimitMaxRequests,
+      retryAfterSeconds: Math.ceil(geminiRateLimitWindowMs / 1000)
+    };
+  }
+
+  while (geminiRequestWindow.length && geminiRequestWindow[0] <= now - geminiRateLimitWindowMs) {
+    geminiRequestWindow.shift();
+  }
+
+  if (geminiRequestWindow.length >= geminiRateLimitMaxRequests) {
+    const retryAfterMs = geminiRateLimitWindowMs - (now - geminiRequestWindow[0]);
+    return {
+      allowed: false,
+      limit: geminiRateLimitMaxRequests,
+      retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1000))
+    };
+  }
+
+  geminiRequestWindow.push(now);
+  return {
+    allowed: true,
+    limit: geminiRateLimitMaxRequests,
+    retryAfterSeconds: 0
+  };
+}
+
 function normalizeSearchText(text) {
   return String(text || "")
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
@@ -334,14 +371,35 @@ function fallbackPlan(text) {
   };
 }
 
-function geminiUnavailablePlan(text, message, reason = "unavailable") {
+function geminiUnavailablePlan(text, message, reason = "unavailable", extra = {}) {
   return {
     source: "gemini_unavailable",
     reason,
     terms: [],
     originalText: normalizeSearchText(text),
-    error: message
+    error: message,
+    ...extra
   };
+}
+
+function getCachedGeminiPlan(cacheKey) {
+  const cached = geminiPlanCache.get(cacheKey);
+  if (!cached) return null;
+  if (Date.now() - cached.createdAt > geminiPlanCacheTtlMs) {
+    geminiPlanCache.delete(cacheKey);
+    return null;
+  }
+  return {
+    ...cached.plan,
+    cached: true
+  };
+}
+
+function setCachedGeminiPlan(cacheKey, plan) {
+  geminiPlanCache.set(cacheKey, {
+    createdAt: Date.now(),
+    plan
+  });
 }
 
 function geminiUnavailableReason(message) {
@@ -415,6 +473,20 @@ async function planSignTerms(text) {
 
   try {
     const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const cacheKey = `${model}:${normalized}`;
+    const cachedPlan = getCachedGeminiPlan(cacheKey);
+    if (cachedPlan) return cachedPlan;
+
+    const rateLimit = checkGeminiRateLimit();
+    if (!rateLimit.allowed) {
+      return geminiUnavailablePlan(
+        text,
+        `Gemini local rate limit exceeded. Retry after ${rateLimit.retryAfterSeconds} seconds.`,
+        "rate_limited",
+        rateLimit
+      );
+    }
+
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
       headers: {
@@ -457,12 +529,14 @@ async function planSignTerms(text) {
       throw new Error("Gemini did not return searchable KSL tokens.");
     }
 
-    return {
+    const plan = {
       source: "gemini",
       model,
       ksl: parsed,
       terms: normalizedTerms
     };
+    setCachedGeminiPlan(cacheKey, plan);
+    return plan;
   } catch (error) {
     return geminiUnavailablePlan(text, error.message, geminiUnavailableReason(error.message));
   }
@@ -827,12 +901,16 @@ async function handleApi(req, res, url) {
       const plan = await planSignTerms(originalText);
       if (plan.source === "gemini_unavailable") {
         const isQuotaExhausted = plan.reason === "quota_exhausted";
-        return sendJson(res, isQuotaExhausted ? 429 : 503, {
-          error: isQuotaExhausted
-            ? "Gemini 사용량이 모두 소진되어 지금은 수어 변환을 진행할 수 없습니다."
-            : "Gemini 분석을 사용할 수 없어 수어 변환을 진행할 수 없습니다.",
+        const isRateLimited = plan.reason === "rate_limited";
+        return sendJson(res, isQuotaExhausted || isRateLimited ? 429 : 503, {
+          error: isRateLimited
+            ? `요청이 너무 많습니다. ${plan.retryAfterSeconds || 60}초 뒤 다시 시도해 주세요.`
+            : isQuotaExhausted
+              ? "Gemini 사용량이 모두 소진되어 지금은 수어 변환을 진행할 수 없습니다."
+              : "Gemini 분석을 사용할 수 없어 수어 변환을 진행할 수 없습니다.",
           reason: plan.reason,
           detail: plan.error,
+          retryAfterSeconds: plan.retryAfterSeconds,
           planner: plan
         });
       }

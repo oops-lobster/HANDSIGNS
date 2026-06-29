@@ -95,6 +95,11 @@ http://127.0.0.1:3000
 
 If `GEMINI_API_KEY` is missing, invalid, or quota-limited, the app stops translation and returns an unavailable state instead of falling back to basic splitting. This keeps the MVP from showing misleading sign results when semantic parsing is unavailable. If sign API keys are missing, the app runs in preview mode without real media.
 
+Gemini calls are protected in two ways:
+
+- Repeated requests for the same normalized sentence are served from an in-memory plan cache.
+- New Gemini planning calls are limited to 15 requests per minute per running server instance. When the limit is reached, the app shows a temporary rate-limit message before spending more tokens.
+
 ## API Routes
 
 ### Search One Term
