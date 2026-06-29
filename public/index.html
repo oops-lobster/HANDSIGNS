@@ -3,7 +3,13 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>수어잇다</title>
+    <title>손말관 | 한국어를 수어 영상으로</title>
+    <meta name="description" content="손말관은 음성·텍스트로 입력한 한국어 문장을 분석해 수어 영상 순서로 재생하는 소통 프로토타입입니다.">
+    <meta property="og:title" content="손말관 | 한국어를 수어 영상으로">
+    <meta property="og:description" content="극장에서 자막을 보듯, 한국어 문장을 수어 영상의 흐름으로 확인합니다.">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#0E0D0D">
+    <link rel="icon" href="mark.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
@@ -11,26 +17,30 @@
       <section class="workspace">
         <header class="topbar">
           <div class="brand">
-            <img src="mark.svg" alt="" class="brandMark">
+            <img src="mark.svg" alt="손말관 로고" class="brandMark">
             <div>
-              <p class="eyebrow">한국어를 수어 영상으로</p>
-              <h1>수어잇다</h1>
-              <p class="tagline">농아인과 청인이 더 쉽게 만나는 수어 영상 변환 프로토타입</p>
+              <p class="eyebrow">SONMALGWAN · CAPTION FOR SIGN</p>
+              <h1>손말관</h1>
+              <p class="tagline">극장에서 자막을 보듯, 한국어 문장을 수어 영상의 흐름으로 재생합니다.</p>
             </div>
           </div>
-          <div class="status" id="status">준비됨</div>
+          <div class="showtimeBar" aria-label="상영 정보">
+            <span>SCREEN 01</span>
+            <strong id="status" class="status">준비됨</strong>
+            <span>KSL VIDEO</span>
+          </div>
         </header>
 
         <form class="composer" id="translateForm">
           <div class="composerHeader">
             <label for="textInput">전달하고 싶은 문장</label>
-            <span>문장 분석 → 수어 순서 → 영상 재생</span>
+            <span>VOICE/TEXT · ANALYZE · PLAY</span>
           </div>
           <div class="inputRow">
             <div class="speechInput">
               <textarea id="textInput" name="text" rows="4" placeholder="예: 안녕하세요 반갑습니다"></textarea>
               <span id="speechStatus" class="speechStatus">마이크를 누르면 음성이 문장으로 입력됩니다.</span>
-              <p class="safetyNotice">욕설, 혐오 표현, 공격적인 비속어는 수어 영상으로 변환하지 않습니다. 속어는 의미를 해치지 않는 선에서 순화합니다.</p>
+              <p class="safetyNotice">상영관 안내: 욕설, 혐오 표현, 공격적인 비속어는 수어 영상으로 변환하지 않습니다. 속어는 의미를 해치지 않는 선에서 순화합니다.</p>
             </div>
             <div class="actionStack" aria-label="입력 방식">
               <button type="button" id="speechButton" class="speechButton" aria-label="음성 입력 시작">
@@ -51,8 +61,8 @@
           <div class="stage">
             <div class="preview" id="preview">
               <div class="emptyState">
-                <strong>말을 수어의 흐름으로 바꿔 보여줍니다.</strong>
-                <span>문장을 수어 표현 단위로 정리하고, 국립수어사전의 정보에서 찾아 순서대로 재생합니다.</span>
+                <strong>손말관 상영 대기 중</strong>
+                <span>문장을 수어 표현 단위로 정리하고, 국립수어사전의 영상 정보를 찾아 자막처럼 순서대로 재생합니다.</span>
               </div>
             </div>
             <div class="controls" aria-label="재생 제어">
@@ -94,20 +104,21 @@
         </section>
 
         <section class="closingNote" aria-label="수어 인식 개선 메시지">
+          <span>SONMALGWAN NOTE</span>
           <strong>수어는 영화를 볼 때의 자막과 같습니다.</strong>
-          <p>단어보다 표정과 맥락이 더 중요합니다. 더 많은 사람들이 수어를 보고 연습하며, 농인들을 이해하는 계기가 되었으면 좋겠습니다.</p>
+          <p>손말관은 손동작 하나를 단어로만 보지 않고, 표정과 맥락이 함께 움직이는 언어로 바라보려는 시도입니다. 더 많은 사람들이 수어를 보고 연습하며, 농인들을 이해하는 계기가 되었으면 좋겠습니다.</p>
         </section>
 
         <footer class="creatorBar" aria-label="프로젝트 정보">
           <div class="creatorSignature">
-            <span>made by</span>
+            <span>손말관 · made by</span>
             <strong>raymin</strong>
           </div>
           <nav class="infoCards" aria-label="관련 링크">
             <a href="about.html" target="_blank" rel="noreferrer">
               <span>프로젝트 배경</span>
               <strong>왜 이걸 만들었나요?</strong>
-              <small>수어잇다의 목표, 한계, 피드백 방향 보기</small>
+              <small>손말관의 목표, 한계, 피드백 방향 보기</small>
             </a>
             <a href="https://docs.google.com/document/d/1h4UrcmYzHf04h_NRk8UPjXEwhReKq4DQSA4WncuUZ7k/edit?usp=sharing" target="_blank" rel="noreferrer">
               <span>Creator</span>
@@ -117,7 +128,7 @@
             <a href="https://github.com/oops-lobster" target="_blank" rel="noreferrer">
               <span>GitHub</span>
               <strong>개발 기록 보기</strong>
-              <small>수어잇다 코드와 업데이트 흐름 살펴보기</small>
+              <small>손말관 코드와 업데이트 흐름 살펴보기</small>
             </a>
           </nav>
         </footer>
