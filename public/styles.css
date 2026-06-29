@@ -708,7 +708,8 @@ textarea:focus {
 
 .flowList article,
 .splitPanel article,
-.questionGrid article {
+.questionGrid article,
+.impactGrid article {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgb(255 255 255 / 88%);
@@ -732,6 +733,48 @@ textarea:focus {
   margin: 0;
   color: var(--muted);
   line-height: 1.68;
+}
+
+.impactGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.impactGrid article {
+  min-height: 220px;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 90%), rgb(232 246 243 / 66%));
+}
+
+.impactGrid span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  margin-bottom: 18px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.impactGrid strong {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.impactGrid p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.72;
 }
 
 .splitPanel {
@@ -1054,6 +1097,7 @@ textarea:focus {
 
   .aboutGrid,
   .flowList,
+  .impactGrid,
   .splitPanel,
   .questionGrid {
     grid-template-columns: 1fr;
