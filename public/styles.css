@@ -93,6 +93,14 @@ p {
   margin-bottom: 24px;
 }
 
+.topActions {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  min-width: min(100%, 420px);
+}
+
 .topbar::before,
 .aboutHero::before {
   content: "";
@@ -230,6 +238,123 @@ h1 {
 .status[data-tone="danger"] {
   color: var(--cinema);
   background: var(--warning);
+}
+
+.fontControls {
+  display: grid;
+  grid-template-columns: auto repeat(3, 1fr);
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--cinema);
+  overflow: hidden;
+}
+
+.fontControls span,
+.fontControls button {
+  min-height: 38px;
+  padding: 0 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.fontControls span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  border-right: 1px solid var(--border);
+}
+
+.fontControls button {
+  border: 0;
+  border-right: 1px solid var(--border);
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.fontControls button:last-child {
+  border-right: 0;
+}
+
+.fontControls button:hover {
+  color: var(--text);
+  background: rgb(232 71 43 / 12%);
+}
+
+.fontControls button[aria-pressed="true"] {
+  color: var(--cinema);
+  background: var(--success);
+}
+
+body[data-font-scale="small"] {
+  font-size: 16px;
+}
+
+body[data-font-scale="small"] .quickGuide strong,
+body[data-font-scale="small"] textarea,
+body[data-font-scale="small"] .cardButton strong,
+body[data-font-scale="small"] .closingNote p {
+  font-size: 16px;
+}
+
+body[data-font-scale="small"] .speechStatus,
+body[data-font-scale="small"] .safetyNotice,
+body[data-font-scale="small"] .cardButton small,
+body[data-font-scale="small"] .feedbackPanelHeader span,
+body[data-font-scale="small"] .infoCards small {
+  font-size: 14px;
+}
+
+body[data-font-scale="large"] {
+  font-size: 19px;
+}
+
+body[data-font-scale="large"] .showtimeBar span,
+body[data-font-scale="large"] .status,
+body[data-font-scale="large"] .composerHeader,
+body[data-font-scale="large"] .queueHeader,
+body[data-font-scale="large"] .infoCards span,
+body[data-font-scale="large"] .feedbackContact span {
+  font-size: 15px;
+}
+
+body[data-font-scale="large"] .quickGuide strong,
+body[data-font-scale="large"] textarea,
+body[data-font-scale="large"] .cardButton strong,
+body[data-font-scale="large"] .closingNote p,
+body[data-font-scale="large"] .speechButton,
+body[data-font-scale="large"] .submitButton {
+  font-size: 20px;
+}
+
+body[data-font-scale="large"] .quickGuide li,
+body[data-font-scale="large"] .speechStatus,
+body[data-font-scale="large"] .safetyNotice,
+body[data-font-scale="large"] .cardButton small,
+body[data-font-scale="large"] .feedbackPanelHeader span,
+body[data-font-scale="large"] .infoCards small,
+body[data-font-scale="large"] .tokenList span,
+body[data-font-scale="large"] .controls button {
+  font-size: 18px;
+}
+
+body[data-font-scale="large"] .composer label,
+body[data-font-scale="large"] .queueHeader strong {
+  font-size: 19px;
+}
+
+body[data-font-scale="large"] .feedbackPanelHeader strong {
+  font-size: 22px;
+}
+
+body[data-font-scale="large"] .infoCards strong {
+  font-size: 27px;
 }
 
 .quickGuide {

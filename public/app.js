@@ -16,8 +16,10 @@ const feedbackPanel = document.querySelector("#feedbackPanel");
 const feedbackForm = document.querySelector("#feedbackForm");
 const feedbackInput = document.querySelector("#feedbackInput");
 const feedbackStatus = document.querySelector("#feedbackStatus");
+const fontScaleButtons = document.querySelectorAll("[data-font-scale]");
 
 const apiBaseUrl = window.HANDSIGNS_API_BASE_URL || "";
+const fontScaleStorageKey = "handsigns-font-scale";
 const translateTimeoutMs = 120_000;
 const videoLoadTimeoutMs = 12_000;
 const imageFallbackDurationMs = 1500;
@@ -36,6 +38,34 @@ let recognition = null;
 let isListening = false;
 let speechStopTimer = null;
 let latestFeedbackContext = null;
+
+initFontScaleControls();
+
+function setFontScale(scale) {
+  const nextScale = ["small", "base", "large"].includes(scale) ? scale : "base";
+  document.body.dataset.fontScale = nextScale;
+  fontScaleButtons.forEach(button => {
+    button.setAttribute("aria-pressed", String(button.dataset.fontScale === nextScale));
+  });
+  try {
+    window.localStorage.setItem(fontScaleStorageKey, nextScale);
+  } catch (_) {
+    // Local storage can be unavailable in private browsing; the live setting still applies.
+  }
+}
+
+function initFontScaleControls() {
+  let savedScale = "base";
+  try {
+    savedScale = window.localStorage.getItem(fontScaleStorageKey) || "base";
+  } catch (_) {
+    savedScale = "base";
+  }
+  setFontScale(savedScale);
+  fontScaleButtons.forEach(button => {
+    button.addEventListener("click", () => setFontScale(button.dataset.fontScale));
+  });
+}
 
 function escapeHtml(value) {
   return String(value || "")
