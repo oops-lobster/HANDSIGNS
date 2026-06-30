@@ -19,8 +19,8 @@ const feedbackInput = document.querySelector("#feedbackInput");
 const feedbackStatus = document.querySelector("#feedbackStatus");
 const fontScaleButtons = document.querySelectorAll("[data-font-scale]");
 
-const apiBaseUrl = window.HANDSIGNS_API_BASE_URL || "";
-const fontScaleStorageKey = "handsigns-font-scale";
+const apiBaseUrl = window.HANDSIGNS_API_BASE_URL || (window.location.protocol === "file:" ? "https://handsigns.vercel.app" : "");
+const fontScaleStorageKey = "handsigns-font-scale-v2";
 const translateTimeoutMs = 120_000;
 const videoLoadTimeoutMs = 12_000;
 const imageFallbackDurationMs = 1500;

@@ -243,7 +243,12 @@ async function loadEnv(path) {
 }
 
 function sendJson(res, status, payload) {
-  res.writeHead(status, { "content-type": "application/json; charset=utf-8" });
+  res.writeHead(status, {
+    "content-type": "application/json; charset=utf-8",
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-allow-headers": "content-type"
+  });
   res.end(JSON.stringify(payload));
 }
 
@@ -262,7 +267,7 @@ function readBody(req) {
   });
 }
 
-function checkSlidingWindowRateLimit(windowItems, limit, now = Date.now()) {
+function checkFixedWindowRateLimit(bucket, limit, now = Date.now()) {
   if (limit <= 0) {
     return {
       allowed: false,
@@ -271,12 +276,13 @@ function checkSlidingWindowRateLimit(windowItems, limit, now = Date.now()) {
     };
   }
 
-  while (windowItems.length && windowItems[0] <= now - geminiRateLimitWindowMs) {
-    windowItems.shift();
+  if (!bucket.windowStartedAt || now - bucket.windowStartedAt >= geminiRateLimitWindowMs) {
+    bucket.windowStartedAt = now;
+    bucket.count = 0;
   }
 
-  if (windowItems.length >= limit) {
-    const retryAfterMs = geminiRateLimitWindowMs - (now - windowItems[0]);
+  if (bucket.count >= limit) {
+    const retryAfterMs = geminiRateLimitWindowMs - (now - bucket.windowStartedAt);
     return {
       allowed: false,
       limit,
@@ -284,7 +290,7 @@ function checkSlidingWindowRateLimit(windowItems, limit, now = Date.now()) {
     };
   }
 
-  windowItems.push(now);
+  bucket.count += 1;
   return {
     allowed: true,
     limit,
@@ -302,12 +308,12 @@ function checkGeminiRateLimit(clientKey, now = Date.now()) {
   }
 
   if (clientKey) {
-    const clientWindow = geminiClientRequestWindows.get(clientKey) || [];
-    const clientLimit = checkSlidingWindowRateLimit(clientWindow, geminiClientRateLimitMaxRequests, now);
+    const clientWindow = geminiClientRequestWindows.get(clientKey) || { windowStartedAt: now, count: 0 };
+    const clientLimit = checkFixedWindowRateLimit(clientWindow, geminiClientRateLimitMaxRequests, now);
     geminiClientRequestWindows.set(clientKey, clientWindow);
 
-    for (const [key, values] of geminiClientRequestWindows) {
-      if (!values.length || values[values.length - 1] <= now - geminiRateLimitWindowMs * 3) {
+    for (const [key, value] of geminiClientRequestWindows) {
+      if (!value.windowStartedAt || value.windowStartedAt <= now - geminiRateLimitWindowMs * 3) {
         geminiClientRequestWindows.delete(key);
       }
     }
@@ -1118,6 +1124,10 @@ async function retryMissingSearchResults(results, searchItems) {
 
 async function handleApi(req, res, url) {
   try {
+    if (req.method === "OPTIONS") {
+      return sendJson(res, 200, {});
+    }
+
     if (req.method === "GET" && url.pathname === "/api/media/video") {
       await streamVideo(req, res, url);
       return;
@@ -1180,19 +1190,6 @@ async function handleApi(req, res, url) {
         results = await searchItemsAcrossCultureApis(searchItems);
       }
       results = await retryMissingSearchResults(results, searchItems);
-
-      const hasEntries = hasSearchEntries(results);
-      if (!hasEntries && originalText && !terms.includes(originalText)) {
-        results.push({ term: originalText, type: "direct", ...(await searchCultureApis(originalText)) });
-        terms.push(originalText);
-      } else if (!hasEntries && originalText) {
-        const fallback = await searchCultureApis(originalText);
-        const originalResult = results.find(result => result.term === originalText);
-        if (originalResult && fallback.entries?.length) {
-          originalResult.entries = fallback.entries;
-          originalResult.warnings = fallback.warnings;
-        }
-      }
 
       sendFeedbackLog(buildFeedbackLogPayload(originalText, plan));
 
