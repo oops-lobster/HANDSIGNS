@@ -35,6 +35,7 @@ body {
   min-height: 100vh;
   color: var(--text);
   font-family: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 17px;
   background: var(--cinema);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -168,7 +169,7 @@ h1 {
 .showtimeBar span,
 .status {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.01em;
   white-space: nowrap;
@@ -246,10 +247,10 @@ h1 {
 
 .quickGuide strong {
   color: var(--text);
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 850;
   letter-spacing: -0.01em;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .quickGuide ol {
@@ -272,7 +273,7 @@ h1 {
   border-radius: 999px;
   color: var(--muted);
   background: var(--panel-deep);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 760;
   white-space: nowrap;
 }
@@ -280,7 +281,7 @@ h1 {
 .quickGuide li span {
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
 }
 
@@ -333,7 +334,7 @@ h1 {
   margin-bottom: 16px;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.03em;
 }
@@ -341,7 +342,7 @@ h1 {
 .composer label {
   color: var(--text);
   font-family: "Pretendard", system-ui, sans-serif;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
   letter-spacing: 0;
 }
@@ -370,7 +371,8 @@ textarea {
   color: var(--text);
   background: var(--panel-deep);
   outline: none;
-  line-height: 1.58;
+  font-size: 18px;
+  line-height: 1.7;
 }
 
 textarea::placeholder {
@@ -384,16 +386,16 @@ textarea:focus {
 
 .speechStatus,
 .safetyNotice {
-  min-height: 38px;
+  min-height: 42px;
   margin: 0;
   padding: 10px 14px;
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--muted);
   background: var(--panel-deep);
-  font-size: 13px;
-  font-weight: 620;
-  line-height: 1.45;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.55;
 }
 
 .speechStatus {
@@ -460,6 +462,7 @@ textarea:focus {
   padding: 0 16px;
   color: var(--text);
   background: var(--accent);
+  font-size: 17px;
 }
 
 .speechButton {
@@ -607,6 +610,7 @@ textarea:focus {
   color: var(--text);
   background: var(--panel);
   border: 1px solid var(--border);
+  font-size: 16px;
 }
 
 .emptyState {
@@ -856,7 +860,7 @@ textarea:focus {
   min-height: 38px;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.03em;
 }
@@ -864,7 +868,7 @@ textarea:focus {
 .queueHeader strong {
   color: var(--text);
   font-family: "Pretendard", system-ui, sans-serif;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 850;
   letter-spacing: 0;
 }
@@ -979,6 +983,7 @@ textarea:focus {
   color: var(--cinema);
   background: var(--text);
   font-family: var(--mono);
+  font-size: 16px;
   font-weight: 900;
 }
 
@@ -1011,14 +1016,21 @@ textarea:focus {
   color: var(--accent);
   border: 1px solid rgb(232 71 43 / 42%);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.08em;
+}
+
+.cardButton strong {
+  font-size: 18px;
+  line-height: 1.3;
 }
 
 .cardButton small {
   margin-top: 4px;
   color: var(--muted);
+  font-size: 15px;
+  line-height: 1.45;
 }
 
 .plannerPanel {
@@ -1047,7 +1059,7 @@ textarea:focus {
   border-radius: 999px;
   color: var(--text);
   background: rgb(245 241 236 / 8%);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 760;
   animation: subtitleFade 420ms ease both;
 }
@@ -1094,13 +1106,13 @@ textarea:focus {
 .feedbackPanelHeader strong {
   margin-bottom: 4px;
   color: var(--text);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 850;
 }
 
 .feedbackPanelHeader span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 650;
 }
 
@@ -1113,7 +1125,7 @@ textarea:focus {
   background: var(--success);
   text-align: center;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
 }
 
@@ -1163,7 +1175,7 @@ textarea:focus {
   max-width: 840px;
   margin: 0;
   color: var(--muted);
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 560;
   line-height: 1.75;
 }
@@ -1227,13 +1239,13 @@ textarea:focus {
 .feedbackContact span {
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 850;
 }
 
 .infoCards strong {
   color: var(--text);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 900;
   letter-spacing: -0.02em;
   line-height: 1.25;
@@ -1241,9 +1253,9 @@ textarea:focus {
 
 .infoCards small {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 560;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
 .aboutPage {
@@ -1646,7 +1658,7 @@ textarea:focus {
   }
 
   .quickGuide strong {
-    font-size: 15px;
+    font-size: 16px;
   }
 
   .quickGuide ol {
