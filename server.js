@@ -1021,6 +1021,87 @@ function getKnownFallbackEntries(query) {
         resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=12464"
       }
     ]],
+    ["나", [
+      {
+        title: "나,내,제,자기",
+        description: "오른 손바닥을 가슴 중앙에 댄다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191028/631984/MOV000248548_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191028/631984/MOV000248548_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=11536"
+      }
+    ]],
+    ["이름", [
+      {
+        title: "이름,명,성명,성함",
+        description: "오른 주먹의 1·5지를 펴서 끝이 왼쪽으로 향하게 하여 왼쪽 가슴에 1·5지 옆면이 닿게 댄다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191015/627715/MOV000256668_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191015/627715/MOV000256668_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=7059"
+      }
+    ]],
+    ["ㅈ", [
+      {
+        title: "ㅈ",
+        description: "오른 주먹의 1·2·5지를 펴서 등이 밖으로 끝이 아래로 향하게 세운다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220727/1001950/MOV000359527_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220727/1001950/MOV000359527_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=11784"
+      }
+    ]],
+    ["ㅓ", [
+      {
+        title: "ㅓ",
+        description: "오른 주먹의 1지를 펴서 바닥이 왼쪽으로 끝이 밖으로 향하게 한다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220802/1005757/MOV000359834_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220802/1005757/MOV000359834_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=9828"
+      }
+    ]],
+    ["ㄴ", [
+      {
+        title: "ㄴ",
+        description: "오른 주먹의 1·5지를 펴서 1지 끝이 왼쪽으로 손등이 밖으로 향하게 한다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009739/MOV000360036_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009739/MOV000360036_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=12716"
+      }
+    ]],
+    ["ㅁ", [
+      {
+        title: "ㅁ",
+        description: "손등이 안으로 향하게 세워 쥔 오른 주먹의 1·2지를 구부린다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009748/MOV000360045_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009748/MOV000360045_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=12825"
+      }
+    ]],
+    ["ㅣ", [
+      {
+        title: "ㅣ",
+        description: "오른 주먹의 4지를 펴서 끝이 위로 바닥이 밖으로 향하게 세운다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009678/MOV000359988_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009678/MOV000359988_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=11764"
+      }
+    ]],
+    ["ㅅ", [
+      {
+        title: "ㅅ",
+        description: "오른 주먹의 1·2지를 펴서 벌려 등이 밖으로 끝이 아래로 향하게 한다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220802/1005893/MOV000359895_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220802/1005893/MOV000359895_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=10667"
+      }
+    ]],
+    ["ㅇ", [
+      {
+        title: "ㅇ",
+        description: "손바닥이 밖으로 향하게 펴서 세운 오른손의 1·5지 끝을 맞대어 동그라미를 만들어 보인다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009745/MOV000360042_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009745/MOV000360042_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=12801"
+      }
+    ]],
     ["노래", [
       {
         title: "노래,음악,가요",
