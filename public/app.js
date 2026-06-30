@@ -18,7 +18,7 @@ const feedbackInput = document.querySelector("#feedbackInput");
 const feedbackStatus = document.querySelector("#feedbackStatus");
 
 const apiBaseUrl = window.HANDSIGNS_API_BASE_URL || "";
-const translateTimeoutMs = 35_000;
+const translateTimeoutMs = 60_000;
 const videoLoadTimeoutMs = 12_000;
 const imageFallbackDurationMs = 1500;
 const sourcePriority = {

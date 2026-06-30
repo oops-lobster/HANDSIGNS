@@ -14,7 +14,7 @@ const host = process.env.HOST || "127.0.0.1";
 const geminiRateLimitWindowMs = 60_000;
 const geminiRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_MINUTE || 15);
 const geminiPlanCacheTtlMs = Number(process.env.GEMINI_PLAN_CACHE_TTL_MS || 6 * 60 * 60 * 1000);
-const cultureApiTimeoutMs = Number(process.env.CULTURE_API_TIMEOUT_MS || 8000);
+const cultureApiTimeoutMs = Number(process.env.CULTURE_API_TIMEOUT_MS || 12000);
 const geminiRequestWindow = globalThis.__handsignsGeminiRequestWindow || [];
 const geminiPlanCache = globalThis.__handsignsGeminiPlanCache || new Map();
 const cultureSearchCache = globalThis.__handsignsCultureSearchCache || new Map();
@@ -1003,6 +1003,24 @@ function getKnownFallbackEntries(query) {
         resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=3331"
       }
     ]],
+    ["반갑다", [
+      {
+        title: "반갑다,반기다,재미,흥,흥취,희열,즐겁다,즐기다",
+        description: "두 손을 약간 구부려 손끝을 양쪽 가슴에 대고 상하로 엇갈리게 두 번 움직인다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191029/632420/MOV000235261_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191029/632420/MOV000235261_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=12464"
+      }
+    ]],
+    ["반갑습니다", [
+      {
+        title: "반갑다,반기다,재미,흥,흥취,희열,즐겁다,즐기다",
+        description: "두 손을 약간 구부려 손끝을 양쪽 가슴에 대고 상하로 엇갈리게 두 번 움직인다.",
+        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191029/632420/MOV000235261_700X466.mp4",
+        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191029/632420/MOV000235261_215X161.jpg",
+        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=12464"
+      }
+    ]],
     ["노래", [
       {
         title: "노래,음악,가요",
@@ -1116,10 +1134,30 @@ function sendFeedbackLog(payload) {
 }
 
 async function searchItemsAcrossCultureApis(searchItems) {
-  const results = [];
-  for (const item of searchItems) {
-    results.push({ term: item.term, type: item.type, ...(await searchCultureApis(item.term)) });
-  }
+  const concurrency = Math.max(1, Number(process.env.CULTURE_SEARCH_CONCURRENCY || 3));
+  const sharedSearches = new Map();
+  const results = new Array(searchItems.length);
+  let nextIndex = 0;
+
+  const searchForTerm = term => {
+    const key = compactSearchText(term);
+    if (!sharedSearches.has(key)) sharedSearches.set(key, searchCultureApis(term));
+    return sharedSearches.get(key);
+  };
+
+  const worker = async () => {
+    while (nextIndex < searchItems.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const item = searchItems[index];
+      results[index] = { term: item.term, type: item.type, ...(await searchForTerm(item.term)) };
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, searchItems.length) }, () => worker())
+  );
+
   return results;
 }
 
