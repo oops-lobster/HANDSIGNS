@@ -14,7 +14,7 @@ const host = process.env.HOST || "127.0.0.1";
 const geminiRateLimitWindowMs = 60_000;
 const geminiRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_MINUTE || 15);
 const geminiPlanCacheTtlMs = Number(process.env.GEMINI_PLAN_CACHE_TTL_MS || 6 * 60 * 60 * 1000);
-const cultureApiTimeoutMs = Number(process.env.CULTURE_API_TIMEOUT_MS || 12000);
+const cultureApiTimeoutMs = Number(process.env.CULTURE_API_TIMEOUT_MS || 20000);
 const geminiRequestWindow = globalThis.__handsignsGeminiRequestWindow || [];
 const geminiPlanCache = globalThis.__handsignsGeminiPlanCache || new Map();
 const cultureSearchCache = globalThis.__handsignsCultureSearchCache || new Map();
@@ -68,8 +68,8 @@ const defaultSources = [
 ];
 
 const sourcePriority = {
-  life: 0,
-  integrated: 1,
+  integrated: 0,
+  life: 1,
   specialized: 2,
   culture: 3
 };
@@ -934,6 +934,13 @@ function isSingleHangulSyllable(query) {
   return /^[가-힣]$/.test(compactSearchText(query));
 }
 
+function cultureQueryVariants(query) {
+  const compact = compactSearchText(query);
+  const variants = [query];
+  if (isSingleHangulSyllable(query)) variants.push(`${compact},`);
+  return variants.filter((variant, index, list) => variant && list.indexOf(variant) === index);
+}
+
 function filterEntriesForQuery(entries, query) {
   if (!isSingleHangulSyllable(query)) return entries;
   const term = compactSearchText(query);
@@ -951,180 +958,6 @@ function sortEntries(entries, query) {
   );
 }
 
-function fallbackEntry(query, entry) {
-  const rawVideoUrl = upgradeSldictUrl(entry.videoUrl);
-  return {
-    searchedTerm: query,
-    sourceId: "integrated",
-    sourceName: "통합 수어",
-    title: entry.title,
-    description: entry.description,
-    videoUrl: mediaUrlForClient(rawVideoUrl),
-    rawVideoUrl,
-    imageUrl: upgradeSldictUrl(entry.imageUrl),
-    resourceUrl: entry.resourceUrl,
-    hasMedia: true,
-    raw: {
-      fallback: true,
-      title: entry.title,
-      subDescription: rawVideoUrl,
-      imageObject: upgradeSldictUrl(entry.imageUrl),
-      signDescription: entry.description,
-      url: entry.resourceUrl
-    }
-  };
-}
-
-function getKnownFallbackEntries(query) {
-  const key = compactSearchText(query);
-  const known = new Map([
-    ["안녕", [
-      {
-        title: "안녕,안부",
-        description: "두 주먹을 쥐고 바닥이 아래로 향하게 하여 가슴 앞에서 아래로 내린다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20200821/733655/MOV000256297_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20200821/733655/MOV000256297_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=10949"
-      },
-      {
-        title: "안녕하세요,안녕하십니까,안녕히 가십시오,안녕히 계세요",
-        description: "오른 손바닥으로 주먹을 쥔 왼 팔을 쓸어내린 다음, 두 주먹을 쥐고 바닥이 아래로 향하게하여 가슴 앞에서 아래로 내린다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191004/624421/MOV000244910_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191004/624421/MOV000244910_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=3331"
-      }
-    ]],
-    ["안녕하세요", [
-      {
-        title: "안녕하세요,안녕하십니까,안녕히 가십시오,안녕히 계세요",
-        description: "오른 손바닥으로 주먹을 쥔 왼 팔을 쓸어내린 다음, 두 주먹을 쥐고 바닥이 아래로 향하게하여 가슴 앞에서 아래로 내린다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191004/624421/MOV000244910_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191004/624421/MOV000244910_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=3331"
-      }
-    ]],
-    ["반갑다", [
-      {
-        title: "반갑다,반기다,재미,흥,흥취,희열,즐겁다,즐기다",
-        description: "두 손을 약간 구부려 손끝을 양쪽 가슴에 대고 상하로 엇갈리게 두 번 움직인다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191029/632420/MOV000235261_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191029/632420/MOV000235261_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=12464"
-      }
-    ]],
-    ["반갑습니다", [
-      {
-        title: "반갑다,반기다,재미,흥,흥취,희열,즐겁다,즐기다",
-        description: "두 손을 약간 구부려 손끝을 양쪽 가슴에 대고 상하로 엇갈리게 두 번 움직인다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191029/632420/MOV000235261_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191029/632420/MOV000235261_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=12464"
-      }
-    ]],
-    ["나", [
-      {
-        title: "나,내,제,자기",
-        description: "오른 손바닥을 가슴 중앙에 댄다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191028/631984/MOV000248548_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191028/631984/MOV000248548_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=11536"
-      }
-    ]],
-    ["이름", [
-      {
-        title: "이름,명,성명,성함",
-        description: "오른 주먹의 1·5지를 펴서 끝이 왼쪽으로 향하게 하여 왼쪽 가슴에 1·5지 옆면이 닿게 댄다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191015/627715/MOV000256668_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191015/627715/MOV000256668_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=7059"
-      }
-    ]],
-    ["ㅈ", [
-      {
-        title: "ㅈ",
-        description: "오른 주먹의 1·2·5지를 펴서 등이 밖으로 끝이 아래로 향하게 세운다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220727/1001950/MOV000359527_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220727/1001950/MOV000359527_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=11784"
-      }
-    ]],
-    ["ㅓ", [
-      {
-        title: "ㅓ",
-        description: "오른 주먹의 1지를 펴서 바닥이 왼쪽으로 끝이 밖으로 향하게 한다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220802/1005757/MOV000359834_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220802/1005757/MOV000359834_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=9828"
-      }
-    ]],
-    ["ㄴ", [
-      {
-        title: "ㄴ",
-        description: "오른 주먹의 1·5지를 펴서 1지 끝이 왼쪽으로 손등이 밖으로 향하게 한다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009739/MOV000360036_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009739/MOV000360036_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=12716"
-      }
-    ]],
-    ["ㅁ", [
-      {
-        title: "ㅁ",
-        description: "손등이 안으로 향하게 세워 쥔 오른 주먹의 1·2지를 구부린다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009748/MOV000360045_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009748/MOV000360045_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=12825"
-      }
-    ]],
-    ["ㅣ", [
-      {
-        title: "ㅣ",
-        description: "오른 주먹의 4지를 펴서 끝이 위로 바닥이 밖으로 향하게 세운다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009678/MOV000359988_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009678/MOV000359988_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=11764"
-      }
-    ]],
-    ["ㅅ", [
-      {
-        title: "ㅅ",
-        description: "오른 주먹의 1·2지를 펴서 벌려 등이 밖으로 끝이 아래로 향하게 한다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220802/1005893/MOV000359895_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220802/1005893/MOV000359895_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=10667"
-      }
-    ]],
-    ["ㅇ", [
-      {
-        title: "ㅇ",
-        description: "손바닥이 밖으로 향하게 펴서 세운 오른손의 1·5지 끝을 맞대어 동그라미를 만들어 보인다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009745/MOV000360042_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220811/1009745/MOV000360042_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=12801"
-      }
-    ]],
-    ["노래", [
-      {
-        title: "노래,음악,가요",
-        description: "오른 주먹의 1·2지를 펴서 반쯤 구부려 입 앞에서 돌리며 밖으로 올린다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191011/626462/MOV000252279_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191011/626462/MOV000252279_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=5520"
-      }
-    ]],
-    ["좋다", [
-      {
-        title: "좋다,선",
-        description: "오른 주먹을 코에 1·5지 옆면이 닿게 댄다.",
-        videoUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191022/629987/MOV000259382_700X466.mp4",
-        imageUrl: "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191022/629987/MOV000259382_215X161.jpg",
-        resourceUrl: "http://sldict.korean.go.kr/front/sign/signContentsView.do?top_category=CTE&origin_no=9078"
-      }
-    ]]
-  ]);
-
-  return (known.get(key) || []).map(entry => fallbackEntry(query, entry));
-}
-
 async function searchCultureApis(query) {
   const sources = getConfiguredSources();
 
@@ -1137,23 +970,46 @@ async function searchCultureApis(query) {
 
   const settled = [];
   const prioritizedSources = [...sources].sort((a, b) => (sourcePriority[a.id] ?? 99) - (sourcePriority[b.id] ?? 99));
+  const queryVariants = cultureQueryVariants(query);
 
   for (const source of prioritizedSources) {
-    try {
-      const entries = await searchOneSourceWithRetry(source, query);
-      settled.push({ source, entries, error: null });
-      if (entries.length) break;
-    } catch (error) {
+    const sourceEntries = [];
+    let lastError = null;
+
+    for (const queryVariant of queryVariants) {
+      try {
+        const entries = (await searchOneSourceWithRetry(source, queryVariant))
+          .map(entry => ({ ...entry, searchedTerm: query }));
+        sourceEntries.push(...entries);
+
+        const relevantEntries = filterEntriesForQuery(entries, query);
+        if (relevantEntries.length || (!isSingleHangulSyllable(query) && entries.length)) break;
+      } catch (error) {
+        lastError = error;
+        if (error.status === 401) break;
+      }
+    }
+
+    if (sourceEntries.length) {
+      settled.push({ source, entries: sourceEntries, error: null });
+      if (filterEntriesForQuery(sourceEntries, query).length || !isSingleHangulSyllable(query)) break;
+      continue;
+    }
+
+    if (lastError) {
       if (process.env.DEBUG_CULTURE_API === "true") {
         console.warn("Culture API search failed", {
           source: source.id,
-          status: error.status || null,
-          message: error.message,
-          body: error.body || ""
+          status: lastError.status || null,
+          message: lastError.message,
+          body: lastError.body || ""
         });
       }
-      settled.push({ source, entries: [], error });
+      settled.push({ source, entries: [], error: lastError });
+      continue;
     }
+
+    settled.push({ source, entries: [], error: null });
   }
   const authErrors = settled.filter(result => result.error?.status === 401);
   const otherErrors = settled.filter(result => result.error && result.error.status !== 401);
@@ -1163,8 +1019,6 @@ async function searchCultureApis(query) {
     cultureSearchCache.set(cacheKey, entries);
   } else if (cultureSearchCache.has(cacheKey)) {
     entries = cultureSearchCache.get(cacheKey);
-  } else {
-    entries = getKnownFallbackEntries(query);
   }
 
   return {
@@ -1246,6 +1100,28 @@ function hasSearchEntries(results) {
   return results.some(result => result.entries?.length);
 }
 
+async function retryMissingSearchResults(results, searchItems) {
+  const missingIndexes = results
+    .map((result, index) => result.entries?.length ? -1 : index)
+    .filter(index => index >= 0);
+
+  if (!missingIndexes.length) return results;
+
+  await wait(900);
+  const retryIndexes = missingIndexes.slice(0, 6);
+  const retryItems = retryIndexes.map(index => searchItems[index]);
+  const retryResults = await searchItemsAcrossCultureApis(retryItems);
+  const merged = [...results];
+
+  retryResults.forEach((retryResult, retryIndex) => {
+    if (retryResult.entries?.length) {
+      merged[retryIndexes[retryIndex]] = retryResult;
+    }
+  });
+
+  return merged;
+}
+
 async function handleApi(req, res, url) {
   try {
     if (req.method === "GET" && url.pathname === "/api/media/video") {
@@ -1309,6 +1185,7 @@ async function handleApi(req, res, url) {
         await wait(900);
         results = await searchItemsAcrossCultureApis(searchItems);
       }
+      results = await retryMissingSearchResults(results, searchItems);
 
       const hasEntries = hasSearchEntries(results);
       if (!hasEntries && originalText && !terms.includes(originalText)) {

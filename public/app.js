@@ -18,12 +18,12 @@ const feedbackInput = document.querySelector("#feedbackInput");
 const feedbackStatus = document.querySelector("#feedbackStatus");
 
 const apiBaseUrl = window.HANDSIGNS_API_BASE_URL || "";
-const translateTimeoutMs = 60_000;
+const translateTimeoutMs = 120_000;
 const videoLoadTimeoutMs = 12_000;
 const imageFallbackDurationMs = 1500;
 const sourcePriority = {
-  life: 0,
-  integrated: 1,
+  integrated: 0,
+  life: 1,
   specialized: 2,
   culture: 3
 };
