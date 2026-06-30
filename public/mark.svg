@@ -1,14 +1,15 @@
 <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
   <title id="title">손말관 로고</title>
-  <desc id="desc">영화관 스크린과 필름 프레임을 품은 손 모양 심볼</desc>
-  <rect width="128" height="128" rx="30" fill="#0E0D0D"/>
-  <rect x="18" y="18" width="92" height="92" rx="24" fill="#1C1A19" stroke="#332E2B" stroke-width="3"/>
-  <path d="M36 70C36 83.807 47.193 95 61 95H70C83.807 95 95 83.807 95 70V48C95 43.582 91.418 40 87 40C82.582 40 79 43.582 79 48V65" stroke="#E8472B" stroke-width="7" stroke-linecap="round"/>
-  <path d="M79 65V35C79 30.582 75.418 27 71 27C66.582 27 63 30.582 63 35V66" stroke="#E8472B" stroke-width="7" stroke-linecap="round"/>
-  <path d="M63 66V42C63 37.582 59.418 34 55 34C50.582 34 47 37.582 47 42V70" stroke="#E8472B" stroke-width="7" stroke-linecap="round"/>
-  <path d="M47 70L42 65C38.876 61.876 33.811 61.876 30.686 65C27.562 68.124 27.562 73.189 30.686 76.314L46.5 92.128" stroke="#E8472B" stroke-width="7" stroke-linecap="round"/>
-  <rect x="44" y="46" width="38" height="25" rx="6" fill="#F5F1EC"/>
-  <rect x="50" y="52" width="26" height="13" rx="3" fill="#0E0D0D"/>
-  <path d="M39 28H89" stroke="#9C938A" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 8"/>
-  <path d="M37 106H91" stroke="#4FB8A6" stroke-width="5" stroke-linecap="round"/>
+  <desc id="desc">손 모양과 작은 상영 스크린을 결합한 손말관 심볼</desc>
+  <rect width="128" height="128" rx="32" fill="#11141A"/>
+  <rect x="16" y="16" width="96" height="96" rx="26" fill="#191C23" stroke="#303640" stroke-width="2"/>
+  <path d="M38 73C38 86.255 48.745 97 62 97H70C83.255 97 94 86.255 94 73V50C94 46.134 90.866 43 87 43C83.134 43 80 46.134 80 50V67" stroke="#F4F0EA" stroke-width="7" stroke-linecap="round"/>
+  <path d="M80 67V36C80 32.134 76.866 29 73 29C69.134 29 66 32.134 66 36V68" stroke="#F4F0EA" stroke-width="7" stroke-linecap="round"/>
+  <path d="M66 68V43C66 39.134 62.866 36 59 36C55.134 36 52 39.134 52 43V72" stroke="#F4F0EA" stroke-width="7" stroke-linecap="round"/>
+  <path d="M52 72L46.5 66.5C43.567 63.567 38.813 63.567 35.879 66.5C32.946 69.433 32.946 74.187 35.879 77.121L50 91.242" stroke="#F4F0EA" stroke-width="7" stroke-linecap="round"/>
+  <rect x="43" y="47" width="41" height="27" rx="7" fill="#11141A" stroke="#C9C2B8" stroke-width="3"/>
+  <path d="M51 56H76" stroke="#C96342" stroke-width="4" stroke-linecap="round"/>
+  <path d="M51 65H69" stroke="#64B6A8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M39 27H89" stroke="#A29CA4" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 8"/>
+  <path d="M39 105H89" stroke="#A29CA4" stroke-width="3" stroke-linecap="round"/>
 </svg>

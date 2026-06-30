@@ -1,6 +1,7 @@
 const form = document.querySelector("#translateForm");
 const input = document.querySelector("#textInput");
 const speechButton = document.querySelector("#speechButton");
+const submitButton = document.querySelector(".submitButton");
 const speechStatus = document.querySelector("#speechStatus");
 const statusEl = document.querySelector("#status");
 const showtimeBar = document.querySelector(".showtimeBar");
@@ -74,6 +75,27 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function isFingerspellingToken(value) {
+  return String(value || "").trim().startsWith("FS_");
+}
+
+function displayToken(value) {
+  const token = String(value || "").trim();
+  return isFingerspellingToken(token) ? token.slice(3) : token;
+}
+
+function tokenKind(value, fallback = "term") {
+  return isFingerspellingToken(value) ? "fingerspelling" : fallback;
+}
+
+function displayEntryTitle(entry) {
+  return displayToken(entry?.displayTerm || entry?.title || "");
+}
+
+function displaySearchTerm(entry) {
+  return displayToken(entry?.displaySearchedTerm || entry?.searchedTerm || "");
 }
 
 function normalizeSearchText(value) {
@@ -161,12 +183,12 @@ function mediaFor(entry, options = {}) {
   }
 
   if (entry.imageUrl) {
-    return `<img src="${escapeHtml(entry.imageUrl)}" alt="${escapeHtml(entry.title)} 수어 이미지">`;
+    return `<img src="${escapeHtml(entry.imageUrl)}" alt="${escapeHtml(displayEntryTitle(entry))} 수어 이미지">`;
   }
 
   return `
     <div class="noMedia">
-      <strong>${escapeHtml(entry.title.slice(0, 18))}</strong>
+      <strong>${escapeHtml(displayEntryTitle(entry).slice(0, 18))}</strong>
       <span>표시할 영상/이미지 URL이 없습니다.</span>
     </div>
   `;
@@ -176,7 +198,7 @@ function fallbackMediaFor(entry) {
   if (entry.imageUrl) {
     return `
       <div class="fallbackMedia">
-        <img src="${escapeHtml(entry.imageUrl)}" alt="${escapeHtml(entry.title)} 수어 이미지">
+        <img src="${escapeHtml(entry.imageUrl)}" alt="${escapeHtml(displayEntryTitle(entry))} 수어 이미지">
         <span>영상 응답이 지연되어 이미지로 표시합니다.</span>
       </div>
     `;
@@ -184,7 +206,7 @@ function fallbackMediaFor(entry) {
 
   return `
     <div class="noMedia">
-      <strong>${escapeHtml(entry.title.slice(0, 18))}</strong>
+      <strong>${escapeHtml(displayEntryTitle(entry).slice(0, 18))}</strong>
       <span>영상 응답이 지연되어 다음 표현으로 넘어갑니다.</span>
     </div>
   `;
@@ -203,13 +225,15 @@ function hasRawVideoRetry(entry) {
 
 function renderEntry(entry, index) {
   const selected = index === activeIndex ? "true" : "false";
+  const kind = tokenKind(entry.rawSearchedTerm || entry.searchedTerm, entry.searchType || "term");
+  const kindLabel = kind === "fingerspelling" ? `<span class="fingerLabel">지문자</span>` : "";
   return `
     <li class="signCard">
       <button class="cardButton" type="button" data-index="${index}" aria-current="${selected}">
         <span class="order">${String(index + 1).padStart(2, "0")}</span>
         <span class="cardText">
-          <strong>${escapeHtml(entry.title)}</strong>
-          <small>${escapeHtml(entry.searchedTerm)} · ${escapeHtml(entry.sourceName || "미분류")} · ${entry.videoUrl ? "영상" : entry.imageUrl ? "이미지" : "미디어 없음"}</small>
+          <strong>${kindLabel}${escapeHtml(displayEntryTitle(entry))}</strong>
+          <small>${escapeHtml(displaySearchTerm(entry))} · ${escapeHtml(entry.sourceName || "미분류")} · ${entry.videoUrl ? "영상" : entry.imageUrl ? "이미지" : "미디어 없음"}</small>
         </span>
       </button>
     </li>
@@ -242,7 +266,11 @@ function renderPlanner(plan) {
 
   plannerSource.textContent = source;
   plannerTokens.innerHTML = tokens.length
-    ? tokens.map(token => `<span data-kind="${kslOrder.includes(token) ? "ksl" : "term"}">${escapeHtml(token)}</span>`).join("")
+    ? tokens.map(token => {
+      const kind = tokenKind(token, kslOrder.includes(token) ? "ksl" : "term");
+      const label = kind === "fingerspelling" ? `<small>지문자</small>` : "";
+      return `<span data-kind="${kind}">${label}${escapeHtml(displayToken(token))}</span>`;
+    }).join("")
     : "<span>문장을 입력하면 표시됩니다.</span>";
 }
 
@@ -262,7 +290,7 @@ function resetFeedbackPanel() {
 function showFeedbackPanel(originalText, plan) {
   latestFeedbackContext = {
     originalText,
-    kslTokens: getPlannerTokens(plan)
+    kslTokens: getPlannerTokens(plan).map(displayToken)
   };
   if (feedbackPanel) feedbackPanel.dataset.visible = "true";
   if (feedbackInput) feedbackInput.value = "";
@@ -403,7 +431,7 @@ function showPreview(index, options = {}) {
           <span class="sourceBadge">${escapeHtml(entry.sourceName || "API")}</span>
           <span>${activeIndex + 1} / ${queue.length}</span>
         </div>
-        <h2>${escapeHtml(entry.title)}</h2>
+        <h2>${escapeHtml(displayEntryTitle(entry))}</h2>
         <p>${escapeHtml(entry.description || "설명 데이터가 없습니다. 전문가 피드백에서 이 매칭이 적절한지 확인합니다.")}</p>
         ${entry.resourceUrl ? `<a class="resourceLink" href="${escapeHtml(entry.resourceUrl)}" target="_blank" rel="noreferrer">원본 자료 열기</a>` : ""}
       </div>
@@ -481,15 +509,25 @@ function wireVideo(video, entry, mediaFrame, options = {}) {
 function flattenResults(data) {
   const phraseResult = data.results.find(result => result.type === "phrase");
   const phraseMedia = bestEntries(phraseResult).filter(entry => entry.videoUrl);
-  if (phraseMedia.length) return phraseMedia.slice(0, 1);
+  if (phraseMedia.length) return phraseMedia.slice(0, 1).map(entry => decorateEntry(entry, phraseResult));
 
   return data.results
     .filter(result => result.type !== "phrase")
     .flatMap(result => {
       const entries = bestEntries(result);
-      if (entries.length) return entries.slice(0, 1);
+      if (entries.length) return entries.slice(0, 1).map(entry => decorateEntry(entry, result));
       return [];
     });
+}
+
+function decorateEntry(entry, result) {
+  return {
+    ...entry,
+    searchType: result?.type || entry.searchType,
+    rawSearchedTerm: result?.rawToken || entry.rawSearchedTerm || entry.searchedTerm,
+    displaySearchedTerm: displayToken(result?.rawToken || entry.searchedTerm),
+    displayTerm: displayToken(result?.rawToken || entry.title)
+  };
 }
 
 function bestEntries(result) {
@@ -582,6 +620,10 @@ form.addEventListener("submit", async event => {
   }
 
   setStatus("검색 중");
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "분석 중";
+  }
   queue = [];
   activeIndex = 0;
   renderTimeline();
@@ -635,8 +677,8 @@ form.addEventListener("submit", async event => {
     isAutoPlaying = false;
     if (rateLimited) {
       const retryAfter = Number(error.retryAfterSeconds || 60);
-      setStatus("소모 제한", "warning");
-      showEmptyState("잠시 후 다시 시도해 주세요.", `Gemini 토큰 보호를 위해 1분에 15번까지만 변환합니다. 약 ${retryAfter}초 뒤 다시 시도할 수 있습니다.`);
+      setStatus("잠시 대기", "warning");
+      showEmptyState("잠깐 쉬었다가 다시 이어갈게요.", `많은 요청이 한꺼번에 들어와 분석을 잠시 멈췄습니다. 약 ${retryAfter}초 뒤 다시 시도할 수 있습니다.`);
     } else if (blockedLanguage) {
       setStatus("변환 제외", "warning");
       showEmptyState("이 표현은 변환하지 않습니다.", "욕설, 혐오 표현, 공격적인 비속어는 수어 영상으로 변환하지 않습니다. 의미를 순화한 문장으로 다시 입력해 주세요.");
@@ -645,7 +687,7 @@ form.addEventListener("submit", async event => {
       showEmptyState("검색 시간이 너무 길어졌습니다.", "수어 API 응답이 지연되어 변환을 멈췄습니다. 잠시 후 다시 시도해 주세요.");
     } else if (quotaExhausted) {
       setStatus("사용 불가", "warning");
-      showEmptyState("지금은 수어 변환을 사용할 수 없습니다.", "Gemini 사용량이 모두 소진되어 변환 준비가 멈췄습니다. 새 API 키가 반영된 뒤 다시 시도해 주세요.");
+      showEmptyState("오늘 준비된 분석량을 모두 사용했습니다.", "잠시 뒤 다시 시도하거나 운영자가 새 사용량을 반영하면 이어서 사용할 수 있습니다.");
     } else {
       setStatus("오류", "danger");
       preview.innerHTML = `
@@ -654,6 +696,11 @@ form.addEventListener("submit", async event => {
           <span>잠시 후 다시 시도하거나 서버 연결 상태를 확인해 주세요.</span>
         </div>
       `;
+    }
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = "수어 변환";
     }
   }
 });

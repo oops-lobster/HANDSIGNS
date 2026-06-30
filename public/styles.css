@@ -2,23 +2,28 @@
 
 :root {
   color-scheme: dark;
-  --cinema: #0E0D0D;
-  --panel: #1C1A19;
-  --panel-soft: #1C1A19;
-  --panel-deep: #0E0D0D;
-  --border: #332E2B;
-  --text: #F5F1EC;
-  --muted: #9C938A;
-  --accent: #E8472B;
-  --success: #4FB8A6;
-  --warning: #C9785A;
-  --black: #0E0D0D;
+  --cinema: #11141A;
+  --panel: #191C23;
+  --panel-soft: #20242D;
+  --panel-deep: #12161D;
+  --panel-muted: #171A21;
+  --border: #303640;
+  --border-soft: #252B34;
+  --text: #F4F0EA;
+  --muted: #A29CA4;
+  --muted-strong: #C9C2B8;
+  --accent: #C96342;
+  --accent-soft: rgb(201 99 66 / 18%);
+  --cta: #E8472B;
+  --success: #64B6A8;
+  --warning: #C08B70;
+  --black: #0F1217;
   --radius-screen: 18px;
   --radius-panel: 10px;
   --radius-ticket: 7px;
   --ticket-notch: 14px;
   --mono: "JetBrains Mono", "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", monospace;
-  --focus-ring: 0 0 0 4px rgb(232 71 43 / 24%);
+  --focus-ring: 0 0 0 4px rgb(201 99 66 / 24%);
 }
 
 * {
@@ -32,7 +37,7 @@ html {
 
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
   color: var(--text);
   font-family: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 17px;
@@ -66,8 +71,8 @@ p {
 }
 
 .app {
-  min-height: 100vh;
-  padding: 28px 28px 72px;
+  min-height: 100dvh;
+  padding: 36px 32px 84px;
 }
 
 .workspace {
@@ -79,12 +84,12 @@ p {
 .aboutHero {
   position: relative;
   display: grid;
-  gap: 28px;
-  padding: 30px;
+  gap: 34px;
+  padding: 36px;
   border: 1px solid var(--border);
   border-radius: 0 0 var(--radius-screen) var(--radius-screen);
   background: var(--panel);
-  overflow: hidden;
+  overflow: clip;
 }
 
 .topbar {
@@ -111,8 +116,8 @@ p {
   right: 28px;
   top: 0;
   height: 4px;
-  background: var(--accent);
-  opacity: 0.9;
+  background: rgb(244 240 234 / 18%);
+  opacity: 1;
 }
 
 .brand,
@@ -136,11 +141,11 @@ p {
 
 .eyebrow {
   margin: 0 0 8px;
-  color: var(--accent);
+  color: var(--muted);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 
 h1 {
@@ -212,7 +217,7 @@ h1 {
   padding: 0 10px;
   border-radius: 0;
   color: var(--text);
-  background: var(--accent);
+  background: var(--panel-soft);
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -287,11 +292,6 @@ h1 {
   border-right: 0;
 }
 
-.fontControls button:hover {
-  color: var(--text);
-  background: rgb(232 71 43 / 12%);
-}
-
 .fontControls button[aria-pressed="true"] {
   color: var(--cinema);
   background: var(--success);
@@ -356,12 +356,12 @@ body[data-font-scale="large"] .infoCards strong {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 22px;
-  margin-bottom: 18px;
-  padding: 18px 20px;
+  margin-bottom: 24px;
+  padding: 22px 24px;
   border: 1px solid var(--border);
-  border-left: 4px solid var(--accent);
+  border-left: 3px solid var(--accent);
   border-radius: 3px;
-  background: rgb(14 13 13 / 72%);
+  background: rgb(18 22 29 / 76%);
 }
 
 .quickGuide strong {
@@ -398,7 +398,7 @@ body[data-font-scale="large"] .infoCards strong {
 }
 
 .quickGuide li span {
-  color: var(--accent);
+  color: var(--muted-strong);
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 900;
@@ -419,12 +419,12 @@ body[data-font-scale="large"] .infoCards strong {
 .feedbackContact {
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
-  background: rgb(28 26 25 / 92%);
+  background: rgb(25 28 35 / 94%);
 }
 
 .composer {
-  margin-bottom: 24px;
-  padding: 24px;
+  margin-bottom: 30px;
+  padding: 30px;
   border-radius: 3px;
 }
 
@@ -580,7 +580,7 @@ textarea:focus {
   min-height: 0;
   padding: 0 16px;
   color: var(--text);
-  background: var(--accent);
+  background: var(--panel-soft);
   font-size: 17px;
 }
 
@@ -589,6 +589,7 @@ textarea:focus {
   align-items: center;
   justify-content: center;
   gap: 10px;
+  background: var(--cta);
 }
 
 .buttonIcon {
@@ -607,55 +608,8 @@ textarea:focus {
   border: 1px solid var(--border);
 }
 
-.speechButton:hover,
-.submitButton:hover,
-.controls button:hover,
-.feedbackForm button:hover,
-.backLink:hover,
-.aboutLinks a:hover,
-.infoCards a:hover,
-.feedbackContact:hover {
-  border-color: var(--accent);
-  color: var(--text);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgb(0 0 0 / 22%);
-}
-
-.speechButton:hover,
-.submitButton:hover,
-.feedbackForm button:hover {
-  background: var(--accent);
-}
-
-.speechButton:hover,
-.submitButton:hover {
-  color: var(--cinema);
-  background: var(--text);
-  box-shadow: 0 12px 28px rgb(232 71 43 / 18%);
-}
-
-.controls button:hover,
-.feedbackForm button:hover,
-.backLink:hover,
-.aboutLinks a:hover,
-.infoCards a:hover,
-.feedbackContact:hover {
-  background: rgb(232 71 43 / 12%);
-}
-
-.speechButton:hover::after,
-.submitButton:hover::after,
-.controls button:hover::after,
-.feedbackForm button:hover::after,
-.backLink:hover::after,
-.aboutLinks a:hover::after,
-.infoCards a:hover::after,
-.feedbackContact:hover::after {
-  border-color: rgb(245 241 236 / 22%);
-  opacity: 1;
-}
-
 .speechButton:disabled,
+.submitButton:disabled,
 .feedbackForm button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -668,10 +622,81 @@ textarea:focus {
   color: var(--cinema);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .speechButton:hover,
+  .submitButton:hover,
+  .controls button:hover,
+  .feedbackForm button:hover,
+  .backLink:hover,
+  .aboutLinks a:hover,
+  .infoCards a:hover,
+  .feedbackContact:hover {
+    border-color: var(--accent);
+    color: var(--text);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgb(0 0 0 / 18%);
+  }
+
+  .speechButton:hover {
+    color: var(--text);
+    background: #F05A38;
+    box-shadow: 0 12px 28px rgb(232 71 43 / 16%);
+  }
+
+  .submitButton:hover,
+  .controls button:hover,
+  .feedbackForm button:hover,
+  .backLink:hover,
+  .aboutLinks a:hover,
+  .infoCards a:hover,
+  .feedbackContact:hover {
+    background: rgb(244 240 234 / 8%);
+  }
+
+  .speechButton:hover::after,
+  .submitButton:hover::after,
+  .controls button:hover::after,
+  .feedbackForm button:hover::after,
+  .backLink:hover::after,
+  .aboutLinks a:hover::after,
+  .infoCards a:hover::after,
+  .feedbackContact:hover::after {
+    border-color: rgb(245 241 236 / 16%);
+    opacity: 1;
+  }
+
+  .fontControls button:hover {
+    color: var(--text);
+    background: rgb(244 240 234 / 8%);
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .speechButton:active,
+  .submitButton:active,
+  .controls button:active,
+  .feedbackForm button:active,
+  .backLink:active,
+  .aboutLinks a:active,
+  .infoCards a:active,
+  .feedbackContact:active,
+  .cardButton:active,
+  .fontControls button:active {
+    color: var(--cinema);
+    background: var(--text);
+    border-color: var(--text);
+    transform: scale(0.985);
+  }
+
+  .speechButton:active .buttonIcon {
+    color: var(--cinema);
+  }
+}
+
 .player {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 24px;
+  gap: 30px;
   align-items: start;
 }
 
@@ -686,36 +711,13 @@ textarea:focus {
   border: 1px solid var(--border);
   border-radius: var(--radius-screen);
   background:
-    linear-gradient(90deg, rgb(245 241 236 / 6%) 0 1px, transparent 1px 23px) top / 24px 10px repeat-x,
-    linear-gradient(90deg, rgb(245 241 236 / 5%) 0 1px, transparent 1px 23px) bottom / 24px 10px repeat-x,
     var(--black);
-  overflow: hidden;
+  overflow: clip;
 }
 
 .preview::before,
 .preview::after {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  left: 22px;
-  right: 22px;
-  height: 8px;
-  pointer-events: none;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgb(245 241 236 / 18%) 0 8px,
-      transparent 8px 18px
-    );
-  opacity: 0.42;
-}
-
-.preview::before {
-  top: 14px;
-}
-
-.preview::after {
-  bottom: 14px;
+  display: none;
 }
 
 .controls {
@@ -786,15 +788,14 @@ textarea:focus {
 
 .mediaFrame {
   position: relative;
-  padding: 28px;
+  padding: 32px;
   background:
-    linear-gradient(90deg, rgb(232 71 43 / 78%) 0 3px, transparent 3px calc(100% - 3px), rgb(232 71 43 / 78%) calc(100% - 3px)),
-    linear-gradient(180deg, rgb(245 241 236 / 5%), transparent 18%),
+    linear-gradient(180deg, rgb(244 240 234 / 4%), transparent 20%),
     var(--black);
 }
 
 .mediaFrame::before {
-  content: "";
+  content: none;
   position: absolute;
   inset: 18px;
   pointer-events: none;
@@ -809,47 +810,15 @@ textarea:focus {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  padding: 2px;
-  border: 0;
-  background: var(--accent);
-  clip-path: polygon(
-    var(--ticket-notch) 0,
-    calc(100% - var(--ticket-notch)) 0,
-    100% var(--ticket-notch),
-    100% calc(50% - 14px),
-    calc(100% - 13px) 50%,
-    100% calc(50% + 14px),
-    100% calc(100% - var(--ticket-notch)),
-    calc(100% - var(--ticket-notch)) 100%,
-    var(--ticket-notch) 100%,
-    0 calc(100% - var(--ticket-notch)),
-    0 calc(50% + 14px),
-    13px 50%,
-    0 calc(50% - 14px),
-    0 var(--ticket-notch)
-  );
+  padding: 1px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: rgb(244 240 234 / 7%);
 }
 
 .videoShell::before,
 .videoShell::after {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  top: 0;
-  bottom: 0;
-  width: 14px;
-  pointer-events: none;
-  background:
-    radial-gradient(circle, var(--accent) 0 1.6px, transparent 2.2px) center 18px / 8px 38px repeat-y;
-  opacity: 0.55;
-}
-
-.videoShell::before {
-  left: 0;
-}
-
-.videoShell::after {
-  right: 0;
+  display: none;
 }
 
 .mediaFrame video,
@@ -860,8 +829,8 @@ textarea:focus {
   height: 100%;
   max-height: 500px;
   object-fit: contain;
-  background: #050505;
-  clip-path: inherit;
+  background: var(--black);
+  border-radius: 8px;
 }
 
 .fallbackMedia,
@@ -925,7 +894,7 @@ textarea:focus {
   padding: 7px 12px;
   border-radius: 999px;
   color: var(--text);
-  background: var(--accent);
+  background: rgb(244 240 234 / 10%);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -934,7 +903,7 @@ textarea:focus {
   margin-bottom: 12px;
   color: var(--text);
   font-size: clamp(30px, 4vw, 44px);
-  font-weight: 900;
+  font-weight: 760;
   letter-spacing: -0.02em;
   line-height: 1.08;
 }
@@ -962,7 +931,7 @@ textarea:focus {
   gap: 14px;
   align-self: stretch;
   padding: 18px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .queue::before,
@@ -998,13 +967,13 @@ textarea:focus {
   display: grid;
   gap: 10px;
   margin: 0;
-  max-height: clamp(280px, calc(100vh - 360px), 430px);
+  max-height: clamp(280px, calc(100dvh - 360px), 430px);
   min-height: 280px;
   padding: 48px 2px;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: var(--accent) rgb(245 241 236 / 8%);
+  scrollbar-color: var(--muted) rgb(245 241 236 / 8%);
   list-style: none;
   mask-image: linear-gradient(180deg, transparent 0, black 12%, black 88%, transparent 100%);
 }
@@ -1018,7 +987,7 @@ textarea:focus {
 }
 
 .timeline::-webkit-scrollbar-thumb {
-  background: var(--accent);
+  background: var(--muted);
 }
 
 .signCard {
@@ -1079,15 +1048,26 @@ textarea:focus {
   background: rgb(245 241 236 / 4%);
 }
 
-.cardButton:hover,
 .cardButton[aria-current="true"] {
-  border-color: var(--accent);
+  border-color: var(--muted);
   background:
     radial-gradient(circle at 100% 20px, var(--cinema) 0 9px, transparent 10px),
     radial-gradient(circle at 100% calc(100% - 20px), var(--cinema) 0 9px, transparent 10px),
-    linear-gradient(90deg, rgb(232 71 43 / 12%), transparent 55%),
+    linear-gradient(90deg, rgb(244 240 234 / 8%), transparent 55%),
     var(--panel);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: inset 0 0 0 1px rgb(244 240 234 / 12%);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cardButton:hover {
+    border-color: var(--muted);
+    background:
+      radial-gradient(circle at 100% 20px, var(--cinema) 0 9px, transparent 10px),
+      radial-gradient(circle at 100% calc(100% - 20px), var(--cinema) 0 9px, transparent 10px),
+      linear-gradient(90deg, rgb(244 240 234 / 8%), transparent 55%),
+      var(--panel);
+    box-shadow: inset 0 0 0 1px rgb(244 240 234 / 12%);
+  }
 }
 
 .order {
@@ -1107,8 +1087,8 @@ textarea:focus {
 }
 
 .cardButton[aria-current="true"] .order {
-  color: var(--text);
-  background: var(--accent);
+  color: var(--cinema);
+  background: var(--muted-strong);
 }
 
 .cardButton strong,
@@ -1127,22 +1107,38 @@ textarea:focus {
 }
 
 .cardButton[aria-current="true"] .cardText::after {
-  content: "NOW PLAYING";
+  content: "재생 중";
   display: block;
   width: fit-content;
   margin-top: 8px;
   padding: 3px 7px;
-  color: var(--accent);
-  border: 1px solid rgb(232 71 43 / 42%);
+  color: var(--muted);
+  border: 1px solid rgb(244 240 234 / 18%);
   font-family: var(--mono);
   font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
+  font-weight: 760;
+  letter-spacing: 0;
 }
 
 .cardButton strong {
   font-size: 18px;
+  font-weight: 760;
   line-height: 1.3;
+}
+
+.fingerLabel {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  margin-right: 8px;
+  padding: 0 7px;
+  border: 1px solid rgb(244 240 234 / 18%);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgb(244 240 234 / 6%);
+  font-size: 11px;
+  font-weight: 760;
+  vertical-align: 2px;
 }
 
 .cardButton small {
@@ -1173,6 +1169,7 @@ textarea:focus {
   display: inline-flex;
   width: fit-content;
   align-items: center;
+  gap: 6px;
   min-height: 32px;
   padding: 6px 12px;
   border-radius: 999px;
@@ -1185,7 +1182,18 @@ textarea:focus {
 
 .tokenList span[data-kind="ksl"] {
   color: var(--text);
-  background: rgb(232 71 43 / 20%);
+  background: rgb(244 240 234 / 10%);
+}
+
+.tokenList span[data-kind="fingerspelling"] {
+  color: var(--text);
+  background: rgb(100 182 168 / 16%);
+}
+
+.tokenList small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 760;
 }
 
 @keyframes subtitleFade {
@@ -1348,11 +1356,6 @@ textarea:focus {
   transition: border-color 120ms ease, background 120ms ease, transform 140ms ease, box-shadow 140ms ease;
 }
 
-.infoCards a:hover {
-  border-color: var(--accent);
-  background: var(--panel);
-}
-
 .infoCards span,
 .impactGrid span,
 .feedbackContact span {
@@ -1512,7 +1515,7 @@ textarea:focus {
   margin-bottom: 18px;
   padding: 0 11px;
   border-radius: 999px;
-  background: rgb(232 71 43 / 14%);
+  background: rgb(244 240 234 / 8%);
 }
 
 .splitPanel {
@@ -1549,11 +1552,6 @@ textarea:focus {
   color: var(--text);
   text-decoration: none;
   transition: border-color 120ms ease, background 120ms ease, transform 140ms ease, box-shadow 140ms ease;
-}
-
-.feedbackContact:hover {
-  border-color: var(--accent);
-  background: var(--panel);
 }
 
 .feedbackContact::before {

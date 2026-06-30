@@ -13,13 +13,16 @@ const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || "127.0.0.1";
 const geminiRateLimitWindowMs = 60_000;
 const geminiRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_MINUTE || 15);
+const geminiClientRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_CLIENT_PER_MINUTE || 6);
 const geminiPlanCacheTtlMs = Number(process.env.GEMINI_PLAN_CACHE_TTL_MS || 6 * 60 * 60 * 1000);
 const cultureApiTimeoutMs = Number(process.env.CULTURE_API_TIMEOUT_MS || 20000);
 const geminiRequestWindow = globalThis.__handsignsGeminiRequestWindow || [];
+const geminiClientRequestWindows = globalThis.__handsignsGeminiClientRequestWindows || new Map();
 const geminiPlanCache = globalThis.__handsignsGeminiPlanCache || new Map();
 const cultureSearchCache = globalThis.__handsignsCultureSearchCache || new Map();
 globalThis.__handsignsGeminiKeyCursor = globalThis.__handsignsGeminiKeyCursor || 0;
 globalThis.__handsignsGeminiRequestWindow = geminiRequestWindow;
+globalThis.__handsignsGeminiClientRequestWindows = geminiClientRequestWindows;
 globalThis.__handsignsGeminiPlanCache = geminiPlanCache;
 globalThis.__handsignsCultureSearchCache = cultureSearchCache;
 
@@ -141,6 +144,7 @@ const kslPreprocessPrompt = `# Role
 4. 고유명사 및 인명 자문자 자모 분해 규칙 (Fingerspelling Phoneme Rule)
    - [가장 중요] 한국수어사전에 없는 인명(사람 이름), 브랜드명 등은 절대 단어나 글자 단위로 묶지 말고, '초성, 중성, 종성(자음과 모음)' 단위로 완전히 해체해야 합니다.
    - 분해된 모든 자음과 모음 토큰 앞에는 "FS_" 접두어를 붙이세요. (쌍자음/쌍모음은 그대로 유지)
+   - 숫자는 아라비아 숫자를 그대로 자릿수별로 출력하지 말고, 기본적으로 한자어 수 읽기(예: 1203 -> 천이백삼)로 먼저 바꾼 뒤 의미 단위로 처리하세요.
    - 예시 (전민성):
      - '전' -> ㅈ, ㅓ, ㄴ -> "FS_ㅈ", "FS_ㅓ", "FS_ㄴ"
      - '민' -> ㅁ, ㅣ, ㄴ -> "FS_ㅁ", "FS_ㅣ", "FS_ㄴ"
@@ -260,34 +264,61 @@ function readBody(req) {
   });
 }
 
-function checkGeminiRateLimit(now = Date.now()) {
-  if (geminiRateLimitMaxRequests <= 0) {
+function checkSlidingWindowRateLimit(windowItems, limit, now = Date.now()) {
+  if (limit <= 0) {
     return {
       allowed: false,
-      limit: geminiRateLimitMaxRequests,
+      limit,
       retryAfterSeconds: Math.ceil(geminiRateLimitWindowMs / 1000)
     };
   }
 
-  while (geminiRequestWindow.length && geminiRequestWindow[0] <= now - geminiRateLimitWindowMs) {
-    geminiRequestWindow.shift();
+  while (windowItems.length && windowItems[0] <= now - geminiRateLimitWindowMs) {
+    windowItems.shift();
   }
 
-  if (geminiRequestWindow.length >= geminiRateLimitMaxRequests) {
-    const retryAfterMs = geminiRateLimitWindowMs - (now - geminiRequestWindow[0]);
+  if (windowItems.length >= limit) {
+    const retryAfterMs = geminiRateLimitWindowMs - (now - windowItems[0]);
     return {
       allowed: false,
-      limit: geminiRateLimitMaxRequests,
+      limit,
       retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1000))
     };
   }
 
-  geminiRequestWindow.push(now);
+  windowItems.push(now);
   return {
     allowed: true,
-    limit: geminiRateLimitMaxRequests,
+    limit,
     retryAfterSeconds: 0
   };
+}
+
+function checkGeminiRateLimit(clientKey, now = Date.now()) {
+  if (clientKey) {
+    const clientWindow = geminiClientRequestWindows.get(clientKey) || [];
+    const clientLimit = checkSlidingWindowRateLimit(clientWindow, geminiClientRateLimitMaxRequests, now);
+    geminiClientRequestWindows.set(clientKey, clientWindow);
+
+    for (const [key, values] of geminiClientRequestWindows) {
+      if (!values.length || values[values.length - 1] <= now - geminiRateLimitWindowMs * 3) {
+        geminiClientRequestWindows.delete(key);
+      }
+    }
+
+    if (!clientLimit.allowed) return { ...clientLimit, scope: "client" };
+  }
+
+  const globalLimit = checkSlidingWindowRateLimit(geminiRequestWindow, geminiRateLimitMaxRequests, now);
+  return globalLimit.allowed ? globalLimit : { ...globalLimit, scope: "global" };
+}
+
+function getClientKey(req) {
+  const forwarded = String(req.headers["x-forwarded-for"] || "")
+    .split(",")
+    .map(value => value.trim())
+    .find(Boolean);
+  return forwarded || req.socket?.remoteAddress || "unknown";
 }
 
 function normalizeSearchText(text) {
@@ -295,6 +326,40 @@ function normalizeSearchText(text) {
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function numberToKorean(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+
+  const trimmed = digits.replace(/^0+/, "") || "0";
+  if (trimmed === "0") return "영";
+
+  const digitNames = ["", "일", "이", "삼", "사", "오", "육", "칠", "팔", "구"];
+  const smallUnits = ["", "십", "백", "천"];
+  const largeUnits = ["", "만", "억", "조", "경"];
+  const groups = [];
+
+  for (let end = trimmed.length; end > 0; end -= 4) {
+    groups.unshift(trimmed.slice(Math.max(0, end - 4), end));
+  }
+
+  return groups.map((group, groupIndex) => {
+    const padded = group.padStart(4, "0");
+    const body = [...padded].map((char, index) => {
+      const digit = Number(char);
+      if (!digit) return "";
+      const unit = smallUnits[3 - index];
+      return `${digit === 1 && unit ? "" : digitNames[digit]}${unit}`;
+    }).join("");
+    if (!body) return "";
+    return `${body}${largeUnits[groups.length - groupIndex - 1] || ""}`;
+  }).join("");
+}
+
+function replaceNumbersWithKorean(text) {
+  // TODO: Add contextual native-Korean number reading for time/count expressions.
+  return String(text || "").replace(/\d+/g, match => numberToKorean(match));
 }
 
 function stripTrailingParticle(word) {
@@ -390,7 +455,7 @@ function includesHardBlockedLanguage(text) {
 }
 
 function buildSearchTerms(text) {
-  const normalized = normalizeSearchText(text);
+  const normalized = normalizeSearchText(replaceNumbersWithKorean(text));
   const words = normalized.split(/\s+/).filter(Boolean);
   const terms = [];
 
@@ -421,7 +486,7 @@ function buildSearchTerms(text) {
 function fallbackPlan(text) {
   return {
     source: "fallback",
-    terms: buildSearchTerms(text)
+    terms: buildSearchTerms(replaceNumbersWithKorean(text))
   };
 }
 
@@ -492,18 +557,24 @@ function termsFromKslPlan(parsed, originalText) {
     .filter(token => typeof token === "string")
     .map(token => token.trim())
     .filter(Boolean);
-  const apiSearchTerms = orderedTerms
-    .map(token => token.startsWith("FS_") ? token.slice(3) : token)
-    .filter(token => !nonLexicalTokens.has(token))
-    .map(token => normalizeSearchText(token))
-    .filter(token => !blockedKslTerms.has(token))
-    .filter(Boolean);
-  const kslSearchItems = apiSearchTerms.flatMap(term => {
-    const terms = dictionaryTermVariants(term);
+  const apiSearchItems = orderedTerms
+    .map(token => ({
+      term: token.startsWith("FS_") ? token.slice(3) : replaceNumbersWithKorean(token),
+      sourceType: token.startsWith("FS_") ? "fingerspelling" : "ksl"
+    }))
+    .filter(item => !nonLexicalTokens.has(item.term))
+    .map(item => ({ ...item, term: normalizeSearchText(item.term) }))
+    .filter(item => !blockedKslTerms.has(item.term))
+    .filter(item => item.term);
+  const kslSearchItems = apiSearchItems.flatMap(item => {
+    const terms = dictionaryTermVariants(item.term);
     return terms.flatMap((variant, index) => {
       const parts = variant.split(/\s+/).filter(part => part && part !== variant);
+      const baseType = item.sourceType === "fingerspelling"
+        ? "fingerspelling"
+        : index === 0 ? "ksl" : "ksl_variant";
       return [
-        { term: variant, type: index === 0 ? "ksl" : "ksl_variant" },
+        { term: variant, type: baseType, rawToken: item.sourceType === "fingerspelling" ? `FS_${item.term}` : item.term },
         ...parts.map(part => ({ term: part, type: "ksl_part" }))
       ];
     });
@@ -536,20 +607,20 @@ function extractJson(text) {
   return JSON.parse(cleaned.slice(start, end + 1));
 }
 
-async function planSignTerms(text) {
+async function planSignTerms(text, clientKey = "") {
   const apiKeys = getGeminiApiKeys();
   if (!apiKeys.length) return geminiUnavailablePlan(text, "Gemini API key is not configured.", "key_missing");
 
-  const normalized = normalizeSearchText(text);
+  const normalized = normalizeSearchText(replaceNumbersWithKorean(text));
   if (!normalized) return fallbackPlan(text);
 
   try {
-    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const model = process.env.GEMINI_MODEL || "gemini-1.5-flash";
     const cacheKey = `${model}:${normalized}`;
     const cachedPlan = getCachedGeminiPlan(cacheKey);
     if (cachedPlan) return cachedPlan;
 
-    const rateLimit = checkGeminiRateLimit();
+    const rateLimit = checkGeminiRateLimit(clientKey);
     if (!rateLimit.allowed) {
       return geminiUnavailablePlan(
         text,
@@ -1085,7 +1156,7 @@ async function searchItemsAcrossCultureApis(searchItems) {
       const index = nextIndex;
       nextIndex += 1;
       const item = searchItems[index];
-      results[index] = { term: item.term, type: item.type, ...(await searchForTerm(item.term)) };
+      results[index] = { term: item.term, type: item.type, rawToken: item.rawToken, ...(await searchForTerm(item.term)) };
     }
   };
 
@@ -1160,7 +1231,7 @@ async function handleApi(req, res, url) {
         });
       }
 
-      const plan = await planSignTerms(originalText);
+      const plan = await planSignTerms(originalText, getClientKey(req));
       if (plan.source === "gemini_unavailable") {
         const isQuotaExhausted = plan.reason === "quota_exhausted";
         const isRateLimited = plan.reason === "rate_limited";
