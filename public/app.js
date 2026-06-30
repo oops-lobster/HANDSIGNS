@@ -691,15 +691,11 @@ form.addEventListener("submit", async event => {
     const quotaExhausted = error.reason === "quota_exhausted";
     const rateLimited = error.reason === "rate_limited";
     const searchTimeout = error.reason === "search_timeout";
-    const blockedLanguage = error.reason === "blocked_language";
     isAutoPlaying = false;
     if (rateLimited) {
       const retryAfter = Number(error.retryAfterSeconds || 60);
       setStatus("잠시 대기", "warning");
       showEmptyState("잠깐 쉬었다가 다시 이어갈게요.", `많은 요청이 한꺼번에 들어와 분석을 잠시 멈췄습니다. 약 ${retryAfter}초 뒤 다시 시도할 수 있습니다.`);
-    } else if (blockedLanguage) {
-      setStatus("변환 제외", "warning");
-      showEmptyState("이 표현은 변환하지 않습니다.", "욕설, 혐오 표현, 공격적인 비속어는 수어 영상으로 변환하지 않습니다. 의미를 순화한 문장으로 다시 입력해 주세요.");
     } else if (searchTimeout) {
       setStatus("검색 실패", "warning");
       showEmptyState("검색 시간이 너무 길어졌습니다.", "수어 API 응답이 지연되어 변환을 멈췄습니다. 잠시 후 다시 시도해 주세요.");
