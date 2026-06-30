@@ -110,6 +110,10 @@ function compactSearchText(value) {
 }
 
 function sourceRank(entry) {
+  const collectionDb = String(entry?.raw?.collectionDb || "").replace(/\s+/g, "");
+  if (collectionDb.includes("일상생활수어")) return sourcePriority.life;
+  if (collectionDb.includes("전문용어수어")) return sourcePriority.specialized;
+  if (collectionDb.includes("문화정보수어")) return sourcePriority.culture;
   return sourcePriority[entry?.sourceId] ?? 99;
 }
 
@@ -554,8 +558,8 @@ function bestEntries(result) {
   const pool = exactMatches.length ? exactMatches : (result.entries || []);
 
   return [...pool].sort((a, b) =>
-    relevanceScore(b, result.term) - relevanceScore(a, result.term) ||
     sourceRank(a) - sourceRank(b) ||
+    relevanceScore(b, result.term) - relevanceScore(a, result.term) ||
     mediaScore(b) - mediaScore(a) ||
     String(a.title || "").localeCompare(String(b.title || ""), "ko")
   );
