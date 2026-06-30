@@ -153,13 +153,14 @@ h1 {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: auto minmax(92px, auto) auto;
+  grid-template-columns: repeat(3, minmax(96px, 1fr));
   align-items: center;
   gap: 0;
   padding: 0;
   border: 1px solid var(--border);
   border-radius: 2px;
   background: var(--cinema);
+  overflow: hidden;
 }
 
 .showtimeBar span,
@@ -172,6 +173,8 @@ h1 {
 }
 
 .showtimeBar span {
+  position: relative;
+  z-index: 1;
   min-height: 42px;
   display: grid;
   place-items: center;
@@ -181,19 +184,30 @@ h1 {
 }
 
 .status {
-  min-width: 96px;
-  min-height: 42px;
+  position: absolute;
+  z-index: 2;
+  inset: 0 auto 0 0;
+  width: 33.333%;
   display: grid;
   place-items: center;
-  padding: 0 14px;
+  padding: 0 10px;
   border-radius: 0;
   color: var(--text);
   background: var(--accent);
   text-align: center;
+  transition: transform 220ms ease;
 }
 
 .showtimeBar span:last-child {
   border-right: 0;
+}
+
+.showtimeBar[data-stage="search"] .status {
+  transform: translateX(100%);
+}
+
+.showtimeBar[data-stage="play"] .status {
+  transform: translateX(200%);
 }
 
 .status[data-tone="success"] {
@@ -658,8 +672,9 @@ textarea:focus {
   border-radius: var(--radius-ticket);
   color: var(--text);
   background:
-    radial-gradient(circle at right 20px, transparent 0 9px, var(--panel) 10px),
-    radial-gradient(circle at right calc(100% - 20px), transparent 0 9px, var(--panel) 10px);
+    radial-gradient(circle at 100% 20px, var(--cinema) 0 9px, transparent 10px),
+    radial-gradient(circle at 100% calc(100% - 20px), var(--cinema) 0 9px, transparent 10px),
+    var(--panel);
   text-align: left;
   cursor: pointer;
   overflow: hidden;
@@ -673,19 +688,6 @@ textarea:focus {
   width: 58px;
   border-right: 1px dashed rgb(156 147 138 / 44%);
   background: rgb(245 241 236 / 4%);
-}
-
-.cardButton::after {
-  content: "";
-  position: absolute;
-  top: 12px;
-  right: -10px;
-  width: 18px;
-  height: 18px;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--cinema);
-  box-shadow: 0 38px 0 var(--cinema), 0 38px 0 1px var(--border);
 }
 
 .cardButton:hover,
@@ -1209,7 +1211,7 @@ textarea:focus {
   }
 
   .showtimeBar {
-    width: fit-content;
+    width: min(100%, 520px);
   }
 
   .brandMark {
@@ -1309,7 +1311,7 @@ textarea:focus {
   }
 
   .showtimeBar {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
     width: 100%;
     border-radius: 2px;

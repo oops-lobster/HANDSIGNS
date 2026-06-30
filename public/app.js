@@ -3,6 +3,7 @@ const input = document.querySelector("#textInput");
 const speechButton = document.querySelector("#speechButton");
 const speechStatus = document.querySelector("#speechStatus");
 const statusEl = document.querySelector("#status");
+const showtimeBar = document.querySelector(".showtimeBar");
 const preview = document.querySelector("#preview");
 const timeline = document.querySelector("#timeline");
 const queueCount = document.querySelector("#queueCount");
@@ -17,8 +18,8 @@ const feedbackInput = document.querySelector("#feedbackInput");
 const feedbackStatus = document.querySelector("#feedbackStatus");
 
 const apiBaseUrl = window.HANDSIGNS_API_BASE_URL || "";
-const translateTimeoutMs = 14_000;
-const videoLoadTimeoutMs = 6500;
+const translateTimeoutMs = 35_000;
+const videoLoadTimeoutMs = 12_000;
 const imageFallbackDurationMs = 1500;
 const sourcePriority = {
   life: 0,
@@ -86,9 +87,36 @@ function relevanceScore(entry, term) {
   return 0;
 }
 
+function statusStageFor(message, tone) {
+  const normalized = String(message || "");
+  if (
+    tone === "success" ||
+    normalized.includes("영상") ||
+    normalized.includes("이미지") ||
+    normalized.includes("재생") ||
+    normalized.includes("미디어")
+  ) {
+    return "play";
+  }
+  if (
+    tone === "warning" ||
+    tone === "danger" ||
+    normalized.includes("검색") ||
+    normalized.includes("분석") ||
+    normalized.includes("변환") ||
+    normalized.includes("소모") ||
+    normalized.includes("사용 불가") ||
+    normalized.includes("결과")
+  ) {
+    return "search";
+  }
+  return "idle";
+}
+
 function setStatus(message, tone = "neutral") {
   statusEl.textContent = message;
   statusEl.dataset.tone = tone;
+  if (showtimeBar) showtimeBar.dataset.stage = statusStageFor(message, tone);
 }
 
 function mediaFor(entry, options = {}) {
