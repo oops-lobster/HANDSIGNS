@@ -16,6 +16,7 @@
   --radius-screen: 18px;
   --radius-panel: 10px;
   --radius-ticket: 7px;
+  --ticket-notch: 18px;
   --mono: "JetBrains Mono", "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", monospace;
   --focus-ring: 0 0 0 4px rgb(232 71 43 / 24%);
 }
@@ -444,11 +445,41 @@ textarea:focus {
 }
 
 .preview {
+  position: relative;
   min-height: 620px;
   border: 1px solid var(--border);
   border-radius: var(--radius-screen);
-  background: var(--black);
+  background:
+    linear-gradient(90deg, rgb(245 241 236 / 6%) 0 1px, transparent 1px 23px) top / 24px 10px repeat-x,
+    linear-gradient(90deg, rgb(245 241 236 / 5%) 0 1px, transparent 1px 23px) bottom / 24px 10px repeat-x,
+    var(--black);
   overflow: hidden;
+}
+
+.preview::before,
+.preview::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  left: 22px;
+  right: 22px;
+  height: 8px;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgb(245 241 236 / 18%) 0 8px,
+      transparent 8px 18px
+    );
+  opacity: 0.42;
+}
+
+.preview::before {
+  top: 14px;
+}
+
+.preview::after {
+  bottom: 14px;
 }
 
 .controls {
@@ -518,16 +549,74 @@ textarea:focus {
 
 .mediaFrame {
   position: relative;
-  background: var(--black);
+  padding: 30px;
+  background:
+    radial-gradient(circle at 12px 50%, rgb(232 71 43 / 48%) 0 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 12px) 50%, rgb(232 71 43 / 48%) 0 3px, transparent 4px),
+    linear-gradient(180deg, rgb(245 241 236 / 5%), transparent 18%),
+    var(--black);
 }
 
 .mediaFrame::before {
   content: "";
   position: absolute;
   inset: 18px;
-  border: 1px solid rgb(245 241 236 / 10%);
-  border-radius: 22px;
   pointer-events: none;
+  background:
+    radial-gradient(circle at 0 20%, transparent 0 10px, rgb(245 241 236 / 10%) 10.5px 11.5px, transparent 12px),
+    radial-gradient(circle at 0 50%, transparent 0 10px, rgb(245 241 236 / 10%) 10.5px 11.5px, transparent 12px),
+    radial-gradient(circle at 0 80%, transparent 0 10px, rgb(245 241 236 / 10%) 10.5px 11.5px, transparent 12px),
+    radial-gradient(circle at 100% 20%, transparent 0 10px, rgb(245 241 236 / 10%) 10.5px 11.5px, transparent 12px),
+    radial-gradient(circle at 100% 50%, transparent 0 10px, rgb(245 241 236 / 10%) 10.5px 11.5px, transparent 12px),
+    radial-gradient(circle at 100% 80%, transparent 0 10px, rgb(245 241 236 / 10%) 10.5px 11.5px, transparent 12px);
+  pointer-events: none;
+}
+
+.videoShell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 2px solid var(--accent);
+  background: #050505;
+  clip-path: polygon(
+    var(--ticket-notch) 0,
+    calc(100% - var(--ticket-notch)) 0,
+    100% var(--ticket-notch),
+    100% calc(50% - 18px),
+    calc(100% - 13px) 50%,
+    100% calc(50% + 18px),
+    100% calc(100% - var(--ticket-notch)),
+    calc(100% - var(--ticket-notch)) 100%,
+    var(--ticket-notch) 100%,
+    0 calc(100% - var(--ticket-notch)),
+    0 calc(50% + 18px),
+    13px 50%,
+    0 calc(50% - 18px),
+    0 var(--ticket-notch)
+  );
+}
+
+.videoShell::before,
+.videoShell::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  width: 22px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, var(--accent) 0 2px, transparent 2.5px) center 18px / 10px 42px repeat-y;
+  opacity: 0.9;
+}
+
+.videoShell::before {
+  left: 0;
+}
+
+.videoShell::after {
+  right: 0;
 }
 
 .mediaFrame video,
@@ -630,13 +719,51 @@ textarea:focus {
 }
 
 .queue {
+  position: sticky;
+  top: 22px;
+  max-height: calc(100vh - 44px);
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 14px;
   align-self: stretch;
   padding: 18px;
+  overflow: hidden;
+}
+
+.queue::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 18px;
+  right: 18px;
+  top: 50%;
+  height: 92px;
+  border-top: 1px solid rgb(232 71 43 / 62%);
+  border-bottom: 1px solid rgb(232 71 43 / 62%);
+  background:
+    linear-gradient(90deg, transparent 0 10px, rgb(232 71 43 / 18%) 10px 12px, transparent 12px calc(100% - 12px), rgb(232 71 43 / 18%) calc(100% - 12px) calc(100% - 10px), transparent calc(100% - 10px)),
+    rgb(232 71 43 / 5%);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.queue::after {
+  content: "NOW PLAYING";
+  position: absolute;
+  z-index: 0;
+  top: calc(50% - 59px);
+  right: 28px;
+  color: rgb(232 71 43 / 72%);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  pointer-events: none;
 }
 
 .queueHeader {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -657,11 +784,31 @@ textarea:focus {
 }
 
 .timeline {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 10px;
   margin: 0;
-  padding: 0;
+  max-height: min(620px, calc(100vh - 220px));
+  padding: clamp(42px, calc(50vh - 190px), 260px) 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) rgb(245 241 236 / 8%);
   list-style: none;
+  mask-image: linear-gradient(180deg, transparent 0, black 12%, black 88%, transparent 100%);
+}
+
+.timeline::-webkit-scrollbar {
+  width: 8px;
+}
+
+.timeline::-webkit-scrollbar-track {
+  background: rgb(245 241 236 / 6%);
+}
+
+.timeline::-webkit-scrollbar-thumb {
+  background: var(--accent);
 }
 
 .signCard {
@@ -690,6 +837,18 @@ textarea:focus {
   transition: border-color 120ms ease, background 120ms ease;
 }
 
+.cardButton::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  right: 10px;
+  top: 12px;
+  bottom: 12px;
+  width: 6px;
+  background:
+    radial-gradient(circle, rgb(245 241 236 / 22%) 0 1.5px, transparent 2px) center top / 6px 12px repeat-y;
+}
+
 .cardButton::before {
   content: "";
   position: absolute;
@@ -702,7 +861,11 @@ textarea:focus {
 .cardButton:hover,
 .cardButton[aria-current="true"] {
   border-color: var(--accent);
-  background: var(--panel);
+  background:
+    radial-gradient(circle at 100% 20px, var(--cinema) 0 9px, transparent 10px),
+    radial-gradient(circle at 100% calc(100% - 20px), var(--cinema) 0 9px, transparent 10px),
+    linear-gradient(90deg, rgb(232 71 43 / 12%), transparent 55%),
+    var(--panel);
 }
 
 .order {
@@ -1294,6 +1457,23 @@ textarea:focus {
   .mediaFrame,
   .videoShell {
     min-height: 330px;
+  }
+
+  .queue {
+    position: relative;
+    top: auto;
+    max-height: none;
+  }
+
+  .queue::before,
+  .queue::after {
+    display: none;
+  }
+
+  .timeline {
+    max-height: 420px;
+    padding: 0 2px;
+    mask-image: none;
   }
 }
 

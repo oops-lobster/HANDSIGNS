@@ -195,6 +195,13 @@ function renderTimeline() {
       showPreview(Number(button.dataset.index));
     });
   });
+
+  const activeButton = timeline.querySelector('[aria-current="true"]');
+  activeButton?.scrollIntoView({
+    block: "center",
+    inline: "nearest",
+    behavior: "smooth"
+  });
 }
 
 function renderPlanner(plan) {
