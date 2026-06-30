@@ -546,7 +546,7 @@ async function planSignTerms(text, clientKey = "") {
   if (!normalized) return fallbackPlan(text);
 
   try {
-    const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
     const cacheKey = `${model}:${normalized}`;
     const cachedPlan = getCachedGeminiPlan(cacheKey);
     if (cachedPlan) return cachedPlan;
