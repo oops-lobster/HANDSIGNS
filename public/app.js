@@ -251,9 +251,23 @@ function renderTimeline() {
   });
 
   const activeButton = timeline.querySelector('[aria-current="true"]');
-  activeButton?.scrollIntoView({
-    block: "center",
-    inline: "nearest",
+  keepActiveTimelineItemVisible(activeButton);
+}
+
+function keepActiveTimelineItemVisible(activeButton) {
+  if (!activeButton) return;
+
+  const timelineTop = timeline.scrollTop;
+  const timelineBottom = timelineTop + timeline.clientHeight;
+  const itemTop = activeButton.offsetTop;
+  const itemBottom = itemTop + activeButton.offsetHeight;
+  const padding = 16;
+
+  if (itemTop >= timelineTop + padding && itemBottom <= timelineBottom - padding) return;
+
+  const nextScrollTop = itemTop - (timeline.clientHeight - activeButton.offsetHeight) / 2;
+  timeline.scrollTo({
+    top: Math.max(0, nextScrollTop),
     behavior: "smooth"
   });
 }

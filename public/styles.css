@@ -971,6 +971,7 @@ textarea:focus {
   min-height: 280px;
   padding: 48px 2px;
   overflow-y: auto;
+  overflow-anchor: none;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--muted) rgb(245 241 236 / 8%);
