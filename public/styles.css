@@ -88,7 +88,7 @@ p {
 }
 
 .topbar {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
   align-items: center;
   margin-bottom: 24px;
 }
@@ -98,7 +98,9 @@ p {
   z-index: 1;
   display: grid;
   gap: 10px;
-  min-width: min(100%, 420px);
+  width: 100%;
+  min-width: 0;
+  max-width: 420px;
 }
 
 .topbar::before,
@@ -242,7 +244,7 @@ h1 {
 
 .fontControls {
   display: grid;
-  grid-template-columns: auto repeat(3, 1fr);
+  grid-template-columns: minmax(72px, 0.9fr) repeat(3, minmax(56px, 1fr));
   align-items: center;
   gap: 0;
   border: 1px solid var(--border);
@@ -254,11 +256,14 @@ h1 {
 .fontControls span,
 .fontControls button {
   min-height: 38px;
-  padding: 0 12px;
+  min-width: 0;
+  padding: 0 10px;
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 850;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fontControls span {
@@ -293,7 +298,7 @@ h1 {
 }
 
 body[data-font-scale="small"] {
-  font-size: 16px;
+  font-size: 17px;
 }
 
 body[data-font-scale="small"] .quickGuide strong,
@@ -312,16 +317,7 @@ body[data-font-scale="small"] .infoCards small {
 }
 
 body[data-font-scale="large"] {
-  font-size: 19px;
-}
-
-body[data-font-scale="large"] .showtimeBar span,
-body[data-font-scale="large"] .status,
-body[data-font-scale="large"] .composerHeader,
-body[data-font-scale="large"] .queueHeader,
-body[data-font-scale="large"] .infoCards span,
-body[data-font-scale="large"] .feedbackContact span {
-  font-size: 15px;
+  font-size: 17px;
 }
 
 body[data-font-scale="large"] .quickGuide strong,
@@ -330,7 +326,7 @@ body[data-font-scale="large"] .cardButton strong,
 body[data-font-scale="large"] .closingNote p,
 body[data-font-scale="large"] .speechButton,
 body[data-font-scale="large"] .submitButton {
-  font-size: 20px;
+  font-size: 19px;
 }
 
 body[data-font-scale="large"] .quickGuide li,
@@ -339,14 +335,12 @@ body[data-font-scale="large"] .safetyNotice,
 body[data-font-scale="large"] .cardButton small,
 body[data-font-scale="large"] .feedbackPanelHeader span,
 body[data-font-scale="large"] .infoCards small,
-body[data-font-scale="large"] .tokenList span,
-body[data-font-scale="large"] .controls button {
-  font-size: 18px;
+body[data-font-scale="large"] .tokenList span {
+  font-size: 17px;
 }
 
-body[data-font-scale="large"] .composer label,
-body[data-font-scale="large"] .queueHeader strong {
-  font-size: 19px;
+body[data-font-scale="large"] .composer label {
+  font-size: 18px;
 }
 
 body[data-font-scale="large"] .feedbackPanelHeader strong {
