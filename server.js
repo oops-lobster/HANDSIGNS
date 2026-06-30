@@ -12,16 +12,13 @@ await loadEnv(join(rootDir, ".env"));
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || "127.0.0.1";
 const geminiRateLimitWindowMs = 60_000;
-const geminiRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_MINUTE || 15);
 const geminiClientRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_CLIENT_PER_MINUTE || 6);
 const geminiPlanCacheTtlMs = Number(process.env.GEMINI_PLAN_CACHE_TTL_MS || 6 * 60 * 60 * 1000);
 const cultureApiTimeoutMs = Number(process.env.CULTURE_API_TIMEOUT_MS || 20000);
-const geminiRequestWindow = globalThis.__handsignsGeminiRequestWindow || [];
 const geminiClientRequestWindows = globalThis.__handsignsGeminiClientRequestWindows || new Map();
 const geminiPlanCache = globalThis.__handsignsGeminiPlanCache || new Map();
 const cultureSearchCache = globalThis.__handsignsCultureSearchCache || new Map();
 globalThis.__handsignsGeminiKeyCursor = globalThis.__handsignsGeminiKeyCursor || 0;
-globalThis.__handsignsGeminiRequestWindow = geminiRequestWindow;
 globalThis.__handsignsGeminiClientRequestWindows = geminiClientRequestWindows;
 globalThis.__handsignsGeminiPlanCache = geminiPlanCache;
 globalThis.__handsignsCultureSearchCache = cultureSearchCache;
@@ -295,6 +292,14 @@ function checkSlidingWindowRateLimit(windowItems, limit, now = Date.now()) {
 }
 
 function checkGeminiRateLimit(clientKey, now = Date.now()) {
+  if (!clientKey) {
+    return {
+      allowed: true,
+      limit: geminiClientRateLimitMaxRequests,
+      retryAfterSeconds: 0
+    };
+  }
+
   if (clientKey) {
     const clientWindow = geminiClientRequestWindows.get(clientKey) || [];
     const clientLimit = checkSlidingWindowRateLimit(clientWindow, geminiClientRateLimitMaxRequests, now);
@@ -309,8 +314,11 @@ function checkGeminiRateLimit(clientKey, now = Date.now()) {
     if (!clientLimit.allowed) return { ...clientLimit, scope: "client" };
   }
 
-  const globalLimit = checkSlidingWindowRateLimit(geminiRequestWindow, geminiRateLimitMaxRequests, now);
-  return globalLimit.allowed ? globalLimit : { ...globalLimit, scope: "global" };
+  return {
+    allowed: true,
+    limit: geminiClientRateLimitMaxRequests,
+    retryAfterSeconds: 0
+  };
 }
 
 function getClientKey(req) {
