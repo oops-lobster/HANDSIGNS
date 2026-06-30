@@ -231,6 +231,59 @@ h1 {
   background: var(--warning);
 }
 
+.quickGuide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 3px;
+  background: rgb(14 13 13 / 72%);
+}
+
+.quickGuide strong {
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+
+.quickGuide ol {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quickGuide li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel-deep);
+  font-size: 13px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.quickGuide li span {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .composer,
 .queue,
 .feedbackPanel,
@@ -365,11 +418,39 @@ textarea:focus {
 .feedbackForm button,
 .backLink,
 .aboutLinks a {
+  position: relative;
   border: 0;
   border-radius: 6px;
   font-weight: 850;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  transform: translateY(0);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.infoCards a,
+.feedbackContact {
+  position: relative;
+  cursor: pointer;
+  transform: translateY(0);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.speechButton::after,
+.submitButton::after,
+.controls button::after,
+.feedbackForm button::after,
+.backLink::after,
+.aboutLinks a::after,
+.infoCards a::after,
+.feedbackContact::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgb(245 241 236 / 0%);
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 140ms ease, border-color 140ms ease;
 }
 
 .speechButton,
@@ -413,6 +494,9 @@ textarea:focus {
 .infoCards a:hover,
 .feedbackContact:hover {
   border-color: var(--accent);
+  color: var(--text);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 22%);
 }
 
 .speechButton:hover,
@@ -421,10 +505,40 @@ textarea:focus {
   background: var(--accent);
 }
 
+.speechButton:hover,
+.submitButton:hover {
+  color: var(--cinema);
+  background: var(--text);
+  box-shadow: 0 12px 28px rgb(232 71 43 / 18%);
+}
+
+.controls button:hover,
+.feedbackForm button:hover,
+.backLink:hover,
+.aboutLinks a:hover,
+.infoCards a:hover,
+.feedbackContact:hover {
+  background: rgb(232 71 43 / 12%);
+}
+
+.speechButton:hover::after,
+.submitButton:hover::after,
+.controls button:hover::after,
+.feedbackForm button:hover::after,
+.backLink:hover::after,
+.aboutLinks a:hover::after,
+.infoCards a:hover::after,
+.feedbackContact:hover::after {
+  border-color: rgb(245 241 236 / 22%);
+  opacity: 1;
+}
+
 .speechButton:disabled,
 .feedbackForm button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+  transform: none;
+  box-shadow: none;
 }
 
 .speechButton[data-active="true"] {
@@ -1100,7 +1214,7 @@ textarea:focus {
   padding: 24px;
   color: var(--text);
   text-decoration: none;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition: border-color 120ms ease, background 120ms ease, transform 140ms ease, box-shadow 140ms ease;
 }
 
 .infoCards a:hover {
@@ -1303,7 +1417,7 @@ textarea:focus {
   padding: 24px;
   color: var(--text);
   text-decoration: none;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition: border-color 120ms ease, background 120ms ease, transform 140ms ease, box-shadow 140ms ease;
 }
 
 .feedbackContact:hover {
@@ -1391,6 +1505,15 @@ textarea:focus {
 
   .showtimeBar {
     width: min(100%, 520px);
+  }
+
+  .quickGuide {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .quickGuide ol {
+    justify-content: flex-start;
   }
 
   .brandMark {
@@ -1516,6 +1639,24 @@ textarea:focus {
   .showtimeBar span,
   .status {
     text-align: center;
+  }
+
+  .quickGuide {
+    padding: 16px;
+  }
+
+  .quickGuide strong {
+    font-size: 15px;
+  }
+
+  .quickGuide ol {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .quickGuide li {
+    width: 100%;
+    white-space: normal;
   }
 
   .composerHeader {
