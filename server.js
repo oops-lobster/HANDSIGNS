@@ -118,6 +118,7 @@ const kslPreprocessPrompt = `# Role
    - 한국어의 복잡한 문장 표현(어미, 접사)을 수어사전에 존재하는 가장 직관적인 핵심 개념 단어(기본형)로 환원하세요.
    - 조사와 문법적 어미는 전면 제거하고, 명사 원형과 용언의 가장 단순한 기본형만 남기세요.
    - 파생어 및 구어체 표현은 사전에 존재할 확률이 높은 원초적 단어로 치환하세요. 예: "노래하다" -> "노래", "좋아하다/조아하다" -> "좋다".
+   - ksl_syntax_order에는 반드시 정규화된 수어사전 표제어만 넣고, 원문 활용형/존댓말 표현을 다시 넣지 마세요. 예: "안녕하세요 반갑습니다" -> ["안녕", "반갑다"].
    - [명시적 안전 규칙] 욕설, 혐오 표현, 비하 표현, 공격적 비속어는 수어 영상으로 변환하지 않습니다. 절대 욕설 원문을 ksl_syntax_order에 넣지 마세요.
    - 욕설/비속어("씨발", "시발", "ㅅㅂ", "존나", "개새끼", "병신", "좆" 등)는 의미를 해치지 않는 선에서 제거하세요. 문장의 핵심 감정만 SURPRISE, ANGRY 등 facial_expression_token에 반영하고, 대체할 표준 표제어가 없으면 ksl_syntax_order에 넣지 마세요.
    - 수어사전에 없을 가능성이 높은 신조어, 속어, 과장 표현은 그대로 출력하지 마세요. 문맥상 의미가 분명하면 사전에 있을 법한 중립 표제어로 순화하고, 의미가 불명확하면 과감히 제거하세요.
@@ -388,73 +389,13 @@ function stripTrailingParticle(word) {
 
 function dictionaryTermVariants(term) {
   const normalized = normalizeSearchText(term);
-  const variants = [];
-
-  const add = value => {
-    const normalizedValue = normalizeSearchText(value);
-    if (normalizedValue && !variants.includes(normalizedValue)) variants.push(normalizedValue);
-  };
-
-  const exactMap = new Map([
-    ["안녕하세요", ["안녕"]],
-    ["안녕하십니까", ["안녕"]],
-    ["안녕히가십시오", ["안녕"]],
-    ["안녕히계세요", ["안녕"]],
-    ["반갑습니다", ["반갑다"]],
-    ["고맙습니다", ["고맙다"]],
-    ["감사합니다", ["감사"]],
-    ["죄송합니다", ["미안"]],
-    ["좋아합니다", ["좋다"]],
-    ["조아합니다", ["좋다"]],
-    ["좋아해요", ["좋다"]],
-    ["조아해요", ["좋다"]],
-    ["좋아해", ["좋다"]],
-    ["조아해", ["좋다"]],
-    ["좋았습니다", ["좋다"]],
-    ["좋았어요", ["좋다"]]
-  ]);
-  const compact = compactSearchText(normalized);
-  if (exactMap.has(compact)) {
-    exactMap.get(compact).forEach(add);
-  }
-
-  if (normalized === "좋아하다" || normalized === "조아하다") {
-    add("좋다");
-  }
 
   if (slangReplacementTerms.has(normalized)) {
-    add(slangReplacementTerms.get(normalized));
+    return [slangReplacementTerms.get(normalized)];
   }
 
-  if (normalized.endsWith("좋아하다") || normalized.endsWith("조아하다")) {
-    add("좋다");
-  }
-
-  const politeVerbEnding = ["합니다", "해요", "했어요", "했어", "하고", "하는", "해서", "해"];
-  for (const ending of politeVerbEnding) {
-    if (!normalized.endsWith(ending) || normalized.length <= ending.length) continue;
-    const stem = normalized.slice(0, -ending.length);
-    if (stem === "좋아" || stem === "조아") {
-      add("좋다");
-    } else if (stem.length >= 1) {
-      add(stem);
-    }
-    break;
-  }
-
-  if (normalized.endsWith("하다") && normalized.length > 2) {
-    const stem = normalized.slice(0, -2);
-    if (stem === "좋아" || stem === "조아") {
-      add("좋다");
-    } else {
-      add(stem);
-    }
-  }
-
-  if (!blockedKslTerms.has(normalized)) {
-    add(normalized);
-  }
-  return variants;
+  if (!normalized || blockedKslTerms.has(normalized)) return [];
+  return [normalized];
 }
 
 function includesHardBlockedLanguage(text) {
@@ -558,45 +499,27 @@ function geminiUnavailableReason(message) {
   return "unavailable";
 }
 
-function termsFromKslPlan(parsed, originalText) {
+function termsFromKslPlan(parsed) {
   const nonLexicalTokens = new Set(["SURPRISE", "QUESTION", "QUESTION_WHY", "NEGATION", "ANGRY", "NEUTRAL"]);
   const order = Array.isArray(parsed?.ksl_syntax_order) ? parsed.ksl_syntax_order : [];
   const orderedTerms = order
     .filter(token => typeof token === "string")
     .map(token => token.trim())
     .filter(Boolean);
-  const apiSearchItems = orderedTerms
-    .map(token => ({
-      term: token.startsWith("FS_") ? token.slice(3) : replaceNumbersWithKorean(token),
-      sourceType: token.startsWith("FS_") ? "fingerspelling" : "ksl"
-    }))
-    .filter(item => !nonLexicalTokens.has(item.term))
-    .map(item => ({ ...item, term: normalizeSearchText(item.term) }))
-    .filter(item => !blockedKslTerms.has(item.term))
-    .filter(item => item.term);
-  const kslSearchItems = apiSearchItems.flatMap(item => {
-    const terms = dictionaryTermVariants(item.term);
-    return terms.flatMap((variant, index) => {
-      const parts = variant.split(/\s+/).filter(part => part && part !== variant);
-      const baseType = item.sourceType === "fingerspelling"
-        ? "fingerspelling"
-        : index === 0 ? "ksl" : "ksl_variant";
-      return [
-        { term: variant, type: baseType, rawToken: item.sourceType === "fingerspelling" ? `FS_${item.term}` : item.term },
-        ...parts.map(part => ({ term: part, type: "ksl_part" }))
-      ];
-    });
-  });
-
-  const merged = kslSearchItems;
 
   const seen = new Set();
-  return merged.filter(item => {
+  return orderedTerms.map(token => {
+    const isFingerspelling = token.startsWith("FS_");
+    const rawTerm = isFingerspelling ? token.slice(3) : replaceNumbersWithKorean(token);
+    const term = normalizeSearchText(rawTerm);
+    return {
+      term,
+      type: isFingerspelling ? "fingerspelling" : "ksl",
+      rawToken: token
+    };
+  }).filter(item => {
     if (!item.term) return false;
-    if (item.type === "ksl" || item.type === "ksl_part" || item.type === "ksl_variant") {
-      seen.add(item.term);
-      return true;
-    }
+    if (nonLexicalTokens.has(item.term) || blockedKslTerms.has(item.term)) return false;
     if (seen.has(item.term)) return false;
     seen.add(item.term);
     return true;
@@ -678,7 +601,7 @@ async function planSignTerms(text, clientKey = "") {
           throw new Error(parsed.error_message || "Gemini returned an error status.");
         }
 
-        const normalizedTerms = termsFromKslPlan(parsed, text);
+        const normalizedTerms = termsFromKslPlan(parsed);
         if (!normalizedTerms.length) {
           throw new Error("Gemini did not return searchable KSL tokens.");
         }
@@ -702,14 +625,6 @@ async function planSignTerms(text, clientKey = "") {
     throw lastError || new Error("Gemini planning failed.");
   } catch (error) {
     const reason = geminiUnavailableReason(error.message);
-    if (reason === "unavailable") {
-      return {
-        ...fallbackPlan(text),
-        reason,
-        originalText: normalized,
-        error: error.message
-      };
-    }
     return geminiUnavailablePlan(text, error.message, reason);
   }
 }
