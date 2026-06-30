@@ -25,8 +25,8 @@ const translateTimeoutMs = 120_000;
 const videoLoadTimeoutMs = 12_000;
 const imageFallbackDurationMs = 1500;
 const sourcePriority = {
-  integrated: 0,
-  life: 1,
+  life: 0,
+  integrated: 1,
   specialized: 2,
   culture: 3
 };
@@ -554,8 +554,8 @@ function bestEntries(result) {
   const pool = exactMatches.length ? exactMatches : (result.entries || []);
 
   return [...pool].sort((a, b) =>
-    sourceRank(a) - sourceRank(b) ||
     relevanceScore(b, result.term) - relevanceScore(a, result.term) ||
+    sourceRank(a) - sourceRank(b) ||
     mediaScore(b) - mediaScore(a) ||
     String(a.title || "").localeCompare(String(b.title || ""), "ko")
   );

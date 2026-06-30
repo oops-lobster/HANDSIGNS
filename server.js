@@ -68,8 +68,8 @@ const defaultSources = [
 ];
 
 const sourcePriority = {
-  integrated: 0,
-  life: 1,
+  life: 0,
+  integrated: 1,
   specialized: 2,
   culture: 3
 };
@@ -951,8 +951,8 @@ function filterEntriesForQuery(entries, query) {
 
 function sortEntries(entries, query) {
   return [...entries].sort((a, b) =>
-    sourceRank(a) - sourceRank(b) ||
     relevanceScore(b, query) - relevanceScore(a, query) ||
+    sourceRank(a) - sourceRank(b) ||
     mediaScore(b) - mediaScore(a) ||
     String(a.title || "").localeCompare(String(b.title || ""), "ko")
   );
