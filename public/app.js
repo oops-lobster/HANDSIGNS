@@ -44,6 +44,30 @@ const preloadedMediaUrls = new Set();
 
 initFontScaleControls();
 
+function bindPress(element, handler) {
+  if (!element) return;
+  let lastDirectPointerAt = 0;
+
+  const isDisabled = () => element.disabled || element.getAttribute("aria-disabled") === "true";
+
+  element.addEventListener("pointerup", event => {
+    if (!event.pointerType || event.pointerType === "mouse" || isDisabled()) return;
+    lastDirectPointerAt = Date.now();
+    event.preventDefault();
+    event.stopPropagation();
+    handler(event);
+  });
+
+  element.addEventListener("click", event => {
+    if (Date.now() - lastDirectPointerAt < 700) {
+      event.preventDefault();
+      return;
+    }
+    if (isDisabled()) return;
+    handler(event);
+  });
+}
+
 function setFontScale(scale) {
   const nextScale = ["small", "base", "large"].includes(scale) ? scale : "base";
   document.body.dataset.fontScale = nextScale;
@@ -66,7 +90,7 @@ function initFontScaleControls() {
   }
   setFontScale(savedScale);
   fontScaleButtons.forEach(button => {
-    button.addEventListener("click", () => setFontScale(button.dataset.fontScale));
+    bindPress(button, () => setFontScale(button.dataset.fontScale));
   });
 }
 
@@ -278,7 +302,7 @@ function renderTimeline() {
   timeline.innerHTML = queue.map(renderEntry).join("");
   queueCount.textContent = `${queue.length}개`;
   timeline.querySelectorAll("button").forEach(button => {
-    button.addEventListener("click", () => {
+    bindPress(button, () => {
       isAutoPlaying = false;
       showPreview(Number(button.dataset.index));
     });
@@ -442,7 +466,7 @@ function setupSpeechRecognition() {
     );
   });
 
-  speechButton.addEventListener("click", () => {
+  bindPress(speechButton, () => {
     if (!recognition) return;
 
     if (isListening) {
@@ -646,17 +670,26 @@ async function submitFeedback(feedback) {
   return data;
 }
 
-prevButton.addEventListener("click", () => {
+bindPress(prevButton, () => {
   isAutoPlaying = false;
   showPreview(activeIndex - 1);
 });
-playButton.addEventListener("click", () => {
+bindPress(playButton, () => {
   isAutoPlaying = true;
   showPreview(activeIndex, { autoplay: true });
 });
-nextButton.addEventListener("click", () => {
+bindPress(nextButton, () => {
   isAutoPlaying = false;
   showPreview(activeIndex + 1);
+});
+
+bindPress(submitButton, event => {
+  event.preventDefault();
+  if (typeof form.requestSubmit === "function") {
+    form.requestSubmit(submitButton);
+    return;
+  }
+  form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
 });
 
 form.addEventListener("submit", async event => {
@@ -752,6 +785,16 @@ form.addEventListener("submit", async event => {
 });
 
 if (feedbackForm) {
+  const feedbackButton = feedbackForm.querySelector("button");
+  bindPress(feedbackButton, event => {
+    event.preventDefault();
+    if (typeof feedbackForm.requestSubmit === "function") {
+      feedbackForm.requestSubmit(feedbackButton);
+      return;
+    }
+    feedbackForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+
   feedbackForm.addEventListener("submit", async event => {
     event.preventDefault();
     const feedback = feedbackInput?.value.trim() || "";

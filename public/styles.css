@@ -54,9 +54,12 @@ textarea {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
-button {
+button,
+a {
   touch-action: manipulation;
 }
 
