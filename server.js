@@ -1299,7 +1299,7 @@ function sendFeedbackLog(payload) {
 }
 
 async function searchItemsAcrossCultureApis(searchItems) {
-  const concurrency = Math.max(1, Number(process.env.CULTURE_SEARCH_CONCURRENCY || 3));
+  const concurrency = Math.max(1, Number(process.env.CULTURE_SEARCH_CONCURRENCY || 1));
   const sharedSearches = new Map();
   const results = new Array(searchItems.length);
   let nextIndex = 0;
