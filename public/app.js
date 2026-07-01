@@ -137,7 +137,8 @@ function relevanceScore(entry, term) {
   const title = compactSearchText(entry.title);
   const parts = titleParts(entry.title);
   if (!normalizedTerm || !title) return 0;
-  if (title === normalizedTerm) return 100;
+  if (title === normalizedTerm) return 120;
+  if (parts[0] === normalizedTerm) return 110;
   if (parts.includes(normalizedTerm)) return 90;
   if (title.startsWith(normalizedTerm)) return 70;
   if (title.includes(normalizedTerm)) return 45;

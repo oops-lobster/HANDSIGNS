@@ -113,8 +113,8 @@ Note: ...
 Input: 오늘 영화 재미없었어  
 Observed tokens: 오늘 / 영화 / 재미없다  
 Feedback: "영화"가 기독교 의미의 단어로 재생되어 수정이 필요해 보임.  
-Status: needs-review  
-Note: Gemini tokenization itself is correct. This looks like an API result-selection/ranking issue where the same query can return a religious sense instead of the movie sense. Do not solve this with a single hardcoded word exception; use it as a regression case for semantic ranking.
+Status: reflected  
+Note: Gemini tokenization itself is correct. The result-selection layer now prioritizes the everyday/culture sign sense over the specialized religious sense for this case. Keep this as a regression case for semantic ranking rather than a hardcoded word exception.
 
 ### 2026-07-01 16:02
 
