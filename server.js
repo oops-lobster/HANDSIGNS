@@ -74,6 +74,8 @@ const sourcePriority = {
   culture: 3
 };
 
+const obligationTokens = new Set(["반드시", "꼭", "필수"]);
+
 const kslPreprocessPrompt = `# Role
 당신은 한국어 자연어 문장을 국립국어원 한국수어사전(sldict.korean.go.kr) API의 실제 표제어 등재 규격과 최대한 일치하도록 단 한 번에 변환 및 매핑하는 '올인원 수어 형태소 정규화 엔진'입니다. 후속 시스템은 당신이 뱉은 ksl_syntax_order 배열의 문자열을 거의 그대로 국립국어원 API 쿼리에 주입합니다. 당신은 문맥 판별, 동의어 수렴, 다의어 해소, 자모 분해를 이 단계에서 끝내야 합니다.
 
@@ -81,6 +83,7 @@ const kslPreprocessPrompt = `# Role
 이 프롬프트의 최우선 목적은 수어사전의 단어들을 조합하여, '농인(수어 사용자)에게 왜곡 없이 정확한 의미를 전달하는 것'입니다. 한국어 문법이나 조사에 얽매이지 말고, 농인이 직관적으로 상황과 영상 이미지를 이해할 수 있도록 수어의 시각적·공간적 흐름에 맞춰 단어를 분해하고 재조합하세요.
 사용자 입력에 오타가 있어도 오타를 그대로 지문자로 쪼개지 말고, 앞뒤 문맥으로 의도한 단어를 먼저 교정한 뒤 수어사전 표제어로 정규화하세요.
 단어명에 임의의 괄호를 추측해 붙이지 말고, 국립국어원 한국수어사전에서 실제로 검색될 가능성이 가장 높은 완성형 표제어 문자열을 출력하세요.
+중요: 출력값은 뜻풀이 라벨이 아니라 실제 API 검색 문자열입니다. 한국어 단어의 일반 사전 뜻보다 국립국어원 수어사전의 등재 관습을 우선하세요. 기본형 하나로 검색하면 신체/장기/전문용어 등 엉뚱한 의미로 빨려 들어갈 수 있는 단어는, 문맥에 맞는 앞괄호 표제어·쉼표 동의어 표제어·관계형 용언 표제어를 먼저 선택하세요.
 
 # Translation Style: Deaf-Centered KSL Meaning Order
 - 이 시스템의 목표는 한국어 문장을 단어별로 직역한 문장식 수어가 아니라, 농인이 수어 영상 순서를 보았을 때 상황을 자연스럽게 이해할 수 있는 '농인 수어에 가까운 의미 중심 배열'입니다.
@@ -88,6 +91,7 @@ const kslPreprocessPrompt = `# Role
 - 기본 흐름은 [시간/상황] -> [장소] -> [화제/대상] -> [부정/가능/감정 같은 문법 프레임] -> [행동/상태] -> [목표/희망/질문 초점]입니다. 단, 문맥 이해가 우선이며 기계적으로만 정렬하지 마세요.
 - 하나의 문장에 여러 행동이 이어지면 실제 사건/의도 흐름대로 배열하세요. 예: "학교 안 가고 집에서 먹고 싶다"는 "학교에 가지 않음"을 먼저 보여준 뒤 "집에서 먹고 싶음"으로 이어갑니다.
 - 부정은 문장 맨 뒤에 고정하지 않습니다. 부정되는 행동/상태 바로 앞에 두어 스코프를 분명히 하세요. 예: "공부 안하고 쉬다" -> ["부정", "공부", "쉬다"].
+- "반드시", "꼭", "필수", "-해야 한다"처럼 의무/강조를 나타내는 표현은 행동보다 앞에 두되, 대상이 있으면 대상 뒤에 둡니다. 예: "안전벨트를 반드시 착용하다" -> ["안전벨트", "반드시", "착용"].
 - 질문/감정/부정의 표정은 facial_expression_token에 반드시 반영하고, ksl_syntax_order에는 실제 검색 가능한 핵심 표제어만 남기세요.
 
 # Output Format Specification
@@ -108,6 +112,7 @@ const kslPreprocessPrompt = `# Role
    - 부사형/활용형도 사전 검색 가능한 기본 표제어로 환원하세요. 예: "많이" -> "많다", "빨리" -> "빠르다", "천천히" -> "느리다", "열심히" -> "열심", "좋아합니다" -> "좋다".
    - 파생어 및 구어체 표현은 사전에 존재할 확률이 높은 원초적 단어로 치환하세요. 예: "노래하다" -> "노래", "좋아하다/조아하다" -> "좋다".
    - ksl_syntax_order에는 반드시 정규화된 수어사전 표제어만 넣고, 원문 활용형/존댓말 표현을 다시 넣지 마세요. 예: "안녕하세요 반갑습니다" -> ["안녕", "반갑다"].
+   - 단일 합성어가 사전 표제어로 불안정하거나 검색되지 않을 가능성이 높으면, 의미를 해치지 않는 범위에서 사전에 있을 법한 더 작은 핵심 단어로 분해하세요. 예: "안전벨트" -> ["안전", "벨트"], "교통사고" -> ["교통", "사고"]. 단, "영화", "학교", "이름"처럼 이미 독립 표제어인 일반 단어는 쪼개지 마세요.
    - [동의어 대표 표제어 원칙] 같은 의미를 가진 여러 한국어 표현이 있으면 원문 단어와 정규화 단어를 동시에 넣지 말고, 수어사전 검색 가능성이 가장 높은 대표 표제어 하나만 남기세요.
    - 예: "안녕하세요" -> "안녕"만 출력하고 "안녕하세요"를 추가하지 마세요. "반갑습니다" -> "반갑다"만 출력하세요. "좋아합니다/좋아해요" -> "좋다"만 출력하세요. "쉬고" -> "쉬다"만 출력하세요.
    - 예: "오늘 영화 재미없었어" -> ["오늘", "영화", "재미없다"]처럼 의미 단위만 남기고, "재미", "없다", "재미없었어"를 중복해서 넣지 마세요.
@@ -117,6 +122,7 @@ const kslPreprocessPrompt = `# Role
    - [범용 표제어 패턴] 사물의 종류/범주가 필요한 다의어는 앞괄호를 우선 유추하세요. 예: 과일 배 -> "(과일)배", 열매 밤 -> "(열매)밤". 사용자가 "과일", "열매", "음료", "신체", "동물", "장소", "교통수단" 같은 범주 단서를 말하면 그 범주를 뒤가 아니라 앞괄호로 붙이세요.
    - [범용 표제어 패턴] 같은 의미의 동의어가 사전에 함께 묶였을 가능성이 높으면 쉼표 나열 표제어를 만들되 공백 없이 출력하세요. 예: "배,선박", "차,자동차,차량". "배, 선박"처럼 띄우지 마세요.
    - [범용 표제어 패턴] 신체 부위처럼 기본 단어가 가장 대표적인 뜻으로 쓰이는 경우에는 괄호를 붙이지 말고 기본형만 출력하세요. 예: 배가 아프다 -> "배", 눈이 아프다 -> "눈".
+   - [동음이의어 방어 원칙] 짧은 한두 음절 단어가 신체/장기 뜻과 위치/방향/관계/음식/사물 뜻을 동시에 가질 수 있으면, 문맥을 먼저 보고 API 검색용 표제어를 고르세요. 위치/방향/관계 문맥인데 기본형이 신체 의미로 오해될 수 있으면 기본형만 출력하지 말고 사전에 있을 법한 관계형 용언 또는 쉼표 표제어를 선택하세요.
    - [교정 샘플] 아래 매핑은 전체 목록이 아니라 사전 표제어 패턴을 일반화하기 위한 기준 예시입니다: 교통수단 배 -> "배,선박"; 먹는 과일 배 -> "(과일)배"; 사람 신체 배 -> "배"; 먹는 밤/군밤/밤 열매 -> "(열매)밤"; 시간 밤 -> "밤"; 타는 자동차 차 -> "차,자동차,차량"; 마시는 음료 차 -> "차,다,음료".
    - 그 외 다의어가 발생하는 구체물/행동도 이 패턴을 적용해 실제 사전 표준에 가까운 앞괄호 카테고리, 쉼표 나열 표제어, 또는 기본형 중 하나로 유추하세요.
    - [강제 정규화] 수어사전 표제어로 매핑할 수 없는 신조어, 속어, 과장 표현, 공격적 표현, 혐오 표현, 성적 모욕, 인신공격, 감정적 추임새는 절대 원문 그대로 ksl_syntax_order에 넣지 마세요.
@@ -135,6 +141,7 @@ const kslPreprocessPrompt = `# Role
    - 예: "차가 막히다" -> "차,자동차,차량", "막히다" / "차가 차갑다" -> "차,다,음료", "차갑다"
    - 예: "살이 마르다" -> "마르다" / "빨래가 마르다" -> "마르다". 괄호 표제어가 실제 사전에 확실하지 않으면 임의 괄호를 붙이지 마세요.
    - 다의어는 문맥상 필요한 뜻 하나로만 해석하고, 다른 뜻의 표제어를 후보처럼 섞지 마세요.
+   - "위"는 동음이의어입니다. "구름 위", "책상 위", "위로 올라가다", "한 살 위"처럼 위치/방향/상하 비교를 뜻하면 국립국어원 검색 표제어인 "위다,(나이)한 살 위"로 출력하세요. 배가 아프거나 소화기관 문맥일 때만 신체/장기 의미의 "위"로 해석하세요.
    - "밤"은 다의어입니다. "어젯밤", "오늘 밤", "밤에"처럼 시간 표현이면 "밤"이고, "밤이 먹고 싶어", "밤을 먹다", "군밤"처럼 먹는 대상이면 반드시 "(열매)밤"으로 출력하세요.
    - "배가. 아프다"처럼 문장 중간에 잘못 들어간 마침표 오타가 있으면 하나의 문장으로 병합해 "배", "아프다"처럼 처리하세요.
    - "안" 문맥 판별은 매우 중요합니다. "학교 안 가", "안하고", "안 먹다", "공부 안하고"처럼 용언 앞/뒤에서 부정을 만들면 반드시 "부정"으로 출력하고, 절대 "안에서"나 "안(내부)"로 바꾸지 마세요.
@@ -147,6 +154,7 @@ const kslPreprocessPrompt = `# Role
    - 부정어("부정", "아니다")를 한국어 어순처럼 무조건 맨 뒤로 보내지 마세요.
    - 농인 수어의 의미 흐름을 우선하여, 부정은 부정되는 행동/상태보다 먼저 제시합니다. 예: "못 가다" -> ["부정", "가다"], "안 먹다" -> ["부정", "먹다"].
    - 문장 전체가 부정이면 장면/화제를 먼저 세운 뒤 핵심 동사/형용사 바로 앞에 "부정"을 둡니다.
+   - 의무/강조 표지("반드시", "꼭", "필수")는 핵심 행동 바로 앞에 둡니다. 대상이 있으면 [대상] -> [의무/강조] -> [행동] 순서를 유지하세요.
    - 의문사("왜", "무엇", "어디")는 질문의 초점이 되므로 문장 끝 또는 질문 초점 위치에 둡니다.
 
 4. 고유명사 및 인명 자문자 자모 분해 규칙 (Fingerspelling Phoneme Rule)
@@ -226,6 +234,24 @@ Output:
   "facial_expression_token": "NEUTRAL"
 }
 
+Input: "운전할 때는 반드시 안전밸트를 착용해야 합니다."
+Output:
+{
+  "status": "success",
+  "original_text": "운전할 때는 반드시 안전밸트를 착용해야 합니다.",
+  "ksl_syntax_order": ["운전", "안전", "벨트", "반드시", "착용"],
+  "facial_expression_token": "NEUTRAL"
+}
+
+Input: "운전할 때는 반드시 안전벨트를 착용해야 합니다."
+Output:
+{
+  "status": "success",
+  "original_text": "운전할 때는 반드시 안전벨트를 착용해야 합니다.",
+  "ksl_syntax_order": ["운전", "안전", "벨트", "반드시", "착용"],
+  "facial_expression_token": "NEUTRAL"
+}
+
 Input: "안녕하세요 반갑습니다."
 Output:
 {
@@ -259,6 +285,24 @@ Output:
   "status": "success",
   "original_text": "밤이 먹고 싶어.",
   "ksl_syntax_order": ["(열매)밤", "먹다", "싶다"],
+  "facial_expression_token": "NEUTRAL"
+}
+
+Input: "구름 위로 올라가요."
+Output:
+{
+  "status": "success",
+  "original_text": "구름 위로 올라가요.",
+  "ksl_syntax_order": ["구름", "위다,(나이)한 살 위", "올라가다"],
+  "facial_expression_token": "NEUTRAL"
+}
+
+Input: "위가 아파요."
+Output:
+{
+  "status": "success",
+  "original_text": "위가 아파요.",
+  "ksl_syntax_order": ["위", "아프다"],
   "facial_expression_token": "NEUTRAL"
 }
 
@@ -638,6 +682,44 @@ function termsFromKslPlan(parsed) {
   }).slice(0, 32);
 }
 
+function applyObligationOrdering(tokens) {
+  const markers = [];
+  const content = [];
+
+  tokens.forEach(token => {
+    if (obligationTokens.has(token)) {
+      markers.push(token);
+      return;
+    }
+    content.push(token);
+  });
+
+  if (!markers.length) return tokens;
+  if (content.length <= 1) return [...markers, ...content];
+
+  const insertIndex = content.length - 1;
+  return [
+    ...content.slice(0, insertIndex),
+    ...markers,
+    ...content.slice(insertIndex)
+  ];
+}
+
+function applyKslPlanGuardrails(parsed) {
+  const order = Array.isArray(parsed?.ksl_syntax_order) ? parsed.ksl_syntax_order : [];
+  const cleanedOrder = order
+    .filter(token => typeof token === "string")
+    .map(token => token.trim())
+    .filter(Boolean);
+
+  if (!cleanedOrder.length) return parsed;
+
+  return {
+    ...parsed,
+    ksl_syntax_order: applyObligationOrdering(cleanedOrder)
+  };
+}
+
 function extractJson(text) {
   const cleaned = String(text || "")
     .replace(/^```json\s*/i, "")
@@ -708,7 +790,7 @@ async function planSignTerms(text, clientKey = "") {
         const outputText = payload.candidates?.[0]?.content?.parts
           ?.map(part => part.text || "")
           .join("\n");
-        const parsed = extractJson(outputText);
+        const parsed = applyKslPlanGuardrails(extractJson(outputText));
         if (parsed?.status === "error") {
           throw new Error(parsed.error_message || "Gemini returned an error status.");
         }
@@ -1045,6 +1127,12 @@ function isSingleHangulSyllable(query) {
   return /^[가-힣]$/.test(compactSearchText(query));
 }
 
+function nominalizedVerbVariant(query) {
+  const compact = compactSearchText(query);
+  if (!/^[가-힣]{3,}하다$/.test(compact)) return "";
+  return compact.slice(0, -2);
+}
+
 function cultureQueryVariants(query) {
   const compact = compactSearchText(query);
   const variants = [query];
@@ -1063,7 +1151,25 @@ function cultureQueryVariants(query) {
   }
 
   if (isSingleHangulSyllable(query)) variants.push(`${compact},`);
+  const nominalized = nominalizedVerbVariant(query);
+  if (nominalized) variants.push(nominalized);
   return variants.filter((variant, index, list) => variant && list.indexOf(variant) === index);
+}
+
+function hasRelevantEntriesForQuery(entries, query) {
+  if (!entries.length) return false;
+  if (isSingleHangulSyllable(query)) return filterEntriesForQuery(entries, query).length > 0;
+
+  const term = compactSearchText(query);
+  return entries.some(entry => {
+    const title = compactSearchText(entry.title);
+    const parts = titleParts(entry.title);
+    return title === term ||
+      parts[0] === term ||
+      parts.includes(term) ||
+      title.startsWith(term) ||
+      title.includes(term);
+  });
 }
 
 function filterEntriesForQuery(entries, query) {
@@ -1104,11 +1210,10 @@ async function searchCultureApis(query) {
     for (const queryVariant of queryVariants) {
       try {
         const entries = (await searchOneSourceWithRetry(source, queryVariant))
-          .map(entry => ({ ...entry, searchedTerm: query }));
+          .map(entry => ({ ...entry, searchedTerm: queryVariant }));
         sourceEntries.push(...entries);
 
-        const relevantEntries = filterEntriesForQuery(entries, query);
-        if (relevantEntries.length || (!isSingleHangulSyllable(query) && entries.length)) break;
+        if (hasRelevantEntriesForQuery(entries, queryVariant)) break;
       } catch (error) {
         lastError = error;
         if (error.status === 401) break;
@@ -1117,7 +1222,7 @@ async function searchCultureApis(query) {
 
     if (sourceEntries.length) {
       settled.push({ source, entries: sourceEntries, error: null });
-      if (filterEntriesForQuery(sourceEntries, query).length || !isSingleHangulSyllable(query)) break;
+      if (hasRelevantEntriesForQuery(sourceEntries, query)) break;
       continue;
     }
 

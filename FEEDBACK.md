@@ -93,6 +93,77 @@ Privacy note: Do not store the reviewer's name, school, contact details, or othe
 
 Do not treat this as a simple API-ranking bug. This is a semantic parsing and product-direction issue. Prioritize prompt and UX changes before adding more data sources.
 
+## 2026-07-01 · KSL Education Feedback
+
+Source: Anonymized elementary KSL education professional  
+Context: Review after opening and checking the Sonmalgwan prototype.
+
+Privacy note: Do not store the reviewer's name, school, contact details, or other personally identifying information in this repository.
+
+### What Worked
+
+- The reviewer recognized the value of turning an idea about Korean-to-sign video support into a concrete prototype.
+- The project can be useful as a vocabulary and Korean-language support tool for young students or early learners.
+- The current prototype gives reviewers a visible interface for discussing what works and what fails.
+
+### Issues Found
+
+1. Korean and KSL are fundamentally different languages
+
+   Product implication:
+
+   - Korean words cannot be fully replaced one-to-one with sign dictionary entries.
+   - The Korean Sign Language dictionary has far fewer directly searchable entries than everyday Korean vocabulary.
+   - A sign dictionary video sequence should not be described as complete interpretation.
+
+2. Abstract Korean expressions are difficult to represent through dictionary lookup
+
+   Product implication:
+
+   - Figurative, abstract, or nuanced expressions may not have a direct dictionary sign.
+   - The MVP should prefer concrete, intuitive, visually clear words.
+
+3. Homophone and context ambiguity remain a core risk
+
+   Example input:
+
+   ```text
+   구름 위로 올라가요
+   ```
+
+   Observed issue:
+
+   ```text
+   구름 + 위(장기 의미)
+   ```
+
+   Problem:
+
+   - The intended meaning is spatial "above/up", not the body organ.
+   - In the current KSL dictionary search format, this should be routed to the headword-like query `위다,(나이)한 살 위` rather than the body-organ sense.
+   - This is a 동음이의어 resolution problem, not a UI-only issue.
+
+### Product Interpretation
+
+- Position Sonmalgwan as an MVP for basic expressions, vocabulary learning, and feedback collection rather than a full KSL interpreter.
+- Make the limitation explicit: dictionary-video composition cannot fully express natural KSL grammar, facial expression, space, and nuance.
+- Strengthen context disambiguation for homophones before API search.
+- Keep collecting expert review cases as regression tests.
+
+### Follow-up Tasks
+
+- [x] Add a prompt rule for spatial/directional "위" to use `위다,(나이)한 살 위` instead of the body-organ sense.
+- [x] Update public copy to explain that the MVP does not replace natural KSL interpretation.
+- [ ] Add more regression cases for homophones:
+  - "구름 위로 올라가요"
+  - "책상 위에 있어요"
+  - "위가 아파요"
+- [ ] Explore a safer result-selection layer for same-title or same-query senses when the API returns multiple meanings.
+
+### Current Decision
+
+Treat this feedback as product-scope guidance. Sonmalgwan should be honest about its limits and emphasize learning, review, and communication support instead of claiming full translation quality.
+
 ## Anonymous Spreadsheet Feedback
 
 Use this section for short text feedback copied from the public feedback sheet. Keep entries anonymous. Do not include names, email addresses, schools, phone numbers, or other personal details.
