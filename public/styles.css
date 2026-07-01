@@ -166,6 +166,19 @@ h1 {
   line-height: 1.55;
 }
 
+.versionMeta {
+  width: fit-content;
+  margin: 12px 0 0;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  color: var(--muted-strong);
+  background: rgb(244 240 234 / 6%);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .showtimeBar {
   position: relative;
   z-index: 1;
@@ -544,16 +557,14 @@ textarea:focus {
   border-radius: 6px;
   font-weight: 850;
   cursor: pointer;
-  transform: translateY(0);
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 140ms ease, box-shadow 140ms ease;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, box-shadow 140ms ease;
 }
 
 .infoCards a,
 .feedbackContact {
   position: relative;
   cursor: pointer;
-  transform: translateY(0);
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 140ms ease, box-shadow 140ms ease;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, box-shadow 140ms ease;
 }
 
 .speechButton::after,
@@ -633,7 +644,6 @@ textarea:focus {
   .feedbackContact:hover {
     border-color: var(--accent);
     color: var(--text);
-    transform: translateY(-2px);
     box-shadow: 0 12px 28px rgb(0 0 0 / 18%);
   }
 
@@ -682,14 +692,11 @@ textarea:focus {
   .feedbackContact:active,
   .cardButton:active,
   .fontControls button:active {
-    color: var(--cinema);
-    background: var(--text);
-    border-color: var(--text);
-    transform: scale(0.985);
+    filter: brightness(1.12);
   }
 
   .speechButton:active .buttonIcon {
-    color: var(--cinema);
+    color: currentColor;
   }
 }
 

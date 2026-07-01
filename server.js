@@ -424,6 +424,16 @@ function normalizeSearchText(text) {
     .trim();
 }
 
+function normalizeKslSearchTerm(text) {
+  return String(text || "")
+    .replace(/[^\p{L}\p{N}\s,()]/gu, " ")
+    .replace(/\s*,\s*/g, ",")
+    .replace(/\(\s+/g, "(")
+    .replace(/\s+\)/g, ")")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function numberToKorean(value) {
   const digits = String(value || "").replace(/\D/g, "");
   if (!digits) return "";
@@ -475,10 +485,24 @@ function stripTrailingParticle(word) {
 }
 
 function dictionaryTermVariants(term) {
-  const normalized = normalizeSearchText(term);
+  const normalized = normalizeKslSearchTerm(term);
 
   if (!normalized) return [];
-  return [normalized];
+  const variants = [normalized];
+
+  if (normalized.includes(",")) {
+    normalized.split(",")
+      .map(part => part.trim())
+      .filter(Boolean)
+      .forEach(part => variants.push(part));
+  }
+
+  const parentheticalMatch = normalized.match(/^\(([^)]+)\)(.+)$/u);
+  if (parentheticalMatch) {
+    variants.push(parentheticalMatch[2].trim());
+  }
+
+  return variants.filter((variant, index, list) => variant && list.indexOf(variant) === index);
 }
 
 function buildSearchTerms(text) {
@@ -589,7 +613,7 @@ function termsFromKslPlan(parsed) {
   return orderedTerms.map(token => {
     const isFingerspelling = token.startsWith("FS_");
     const rawTerm = isFingerspelling ? token.slice(3) : replaceNumbersWithKorean(token);
-    const term = normalizeSearchText(rawTerm);
+    const term = normalizeKslSearchTerm(rawTerm);
     return {
       term,
       type: isFingerspelling ? "fingerspelling" : "ksl",
@@ -1013,6 +1037,20 @@ function isSingleHangulSyllable(query) {
 function cultureQueryVariants(query) {
   const compact = compactSearchText(query);
   const variants = [query];
+
+  if (String(query || "").includes(",")) {
+    String(query)
+      .split(",")
+      .map(part => part.trim())
+      .filter(Boolean)
+      .forEach(part => variants.push(part));
+  }
+
+  const parentheticalMatch = String(query || "").trim().match(/^\(([^)]+)\)(.+)$/u);
+  if (parentheticalMatch) {
+    variants.push(parentheticalMatch[2].trim());
+  }
+
   if (isSingleHangulSyllable(query)) variants.push(`${compact},`);
   return variants.filter((variant, index, list) => variant && list.indexOf(variant) === index);
 }
