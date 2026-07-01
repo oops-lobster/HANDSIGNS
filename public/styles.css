@@ -1687,6 +1687,85 @@ textarea:focus {
   min-height: 230px;
 }
 
+.sheetFeedback {
+  display: grid;
+  gap: 14px;
+}
+
+.sheetFeedback article {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 88%, white 12%);
+}
+
+.sheetMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+}
+
+.sheetMeta span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.sheetMeta strong {
+  min-width: 88px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.sheetMeta strong[data-status="reflected"] {
+  border-color: color-mix(in srgb, var(--success) 50%, transparent);
+  color: var(--success);
+}
+
+.sheetMeta strong[data-status="needs-review"] {
+  border-color: color-mix(in srgb, var(--warning) 55%, transparent);
+  color: var(--warning);
+}
+
+.sheetFeedback dl {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.sheetFeedback dl > div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 18px;
+  padding: 16px 22px;
+}
+
+.sheetFeedback dl > div + div {
+  border-top: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+}
+
+.sheetFeedback dt,
+.sheetFeedback dd {
+  margin: 0;
+}
+
+.sheetFeedback dt {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sheetFeedback dd {
+  color: var(--text);
+  line-height: 1.7;
+}
+
 @media (max-width: 980px) {
   .app,
   .aboutPage {
@@ -1772,6 +1851,11 @@ textarea:focus {
 
   .feedbackCase > div {
     grid-template-columns: 1fr;
+  }
+
+  .sheetFeedback dl > div {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .creatorSignature,

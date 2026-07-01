@@ -92,3 +92,34 @@ Privacy note: Do not store the reviewer's name, school, contact details, or othe
 ### Current Decision
 
 Do not treat this as a simple API-ranking bug. This is a semantic parsing and product-direction issue. Prioritize prompt and UX changes before adding more data sources.
+
+## Anonymous Spreadsheet Feedback
+
+Use this section for short text feedback copied from the public feedback sheet. Keep entries anonymous. Do not include names, email addresses, schools, phone numbers, or other personal details.
+
+Format:
+
+```text
+YYYY-MM-DD HH:mm
+Input: ...
+Observed tokens: ...
+Feedback: ...
+Status: open | reflected | needs-review
+Note: ...
+```
+
+### 2026-06-30 23:32
+
+Input: 오늘 영화 재미없었어  
+Observed tokens: 오늘 / 영화 / 재미없다  
+Feedback: "영화"가 기독교 의미의 단어로 재생되어 수정이 필요해 보임.  
+Status: needs-review  
+Note: Gemini tokenization itself is correct. This looks like an API result-selection/ranking issue where the same query can return a religious sense instead of the movie sense. Do not solve this with a single hardcoded word exception; use it as a regression case for semantic ranking.
+
+### 2026-07-01 16:02
+
+Input: 바빠서 멀리 못 가요  
+Observed tokens: 바쁘다 / 멀다 / 가다 / 못  
+Feedback: "못"이 negative "cannot"이 아니라 pond-related sign result로 재생됨.  
+Status: reflected  
+Note: Prompt rules now normalize both negative "안" and negative "못" to the dictionary-search token "부정". Avoid adding source-code word exceptions unless a broader ranking rule is designed.

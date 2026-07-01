@@ -24,6 +24,7 @@ const fontScaleStorageKey = "handsigns-font-scale-v2";
 const translateTimeoutMs = 120_000;
 const videoLoadTimeoutMs = 12_000;
 const imageFallbackDurationMs = 1500;
+const signVideoPlaybackRate = 1.25;
 const sourcePriority = {
   life: 0,
   integrated: 1,
@@ -539,6 +540,7 @@ function wireVideo(video, entry, mediaFrame, options = {}) {
   video.addEventListener("error", fallbackFromVideo, { once: true });
 
   video.muted = true;
+  video.playbackRate = signVideoPlaybackRate;
   video.play().catch(() => {
     setStatus("재생 대기", "warning");
   });

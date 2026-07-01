@@ -105,6 +105,63 @@
         </div>
       </section>
 
+      <section class="aboutSection" aria-label="익명 스프레드시트 피드백">
+        <div class="sectionHeading">
+          <p class="eyebrow">Anonymous Sheet Notes</p>
+          <h2>스프레드시트에서 온 짧은 피드백</h2>
+        </div>
+        <div class="sheetFeedback">
+          <article>
+            <div class="sheetMeta">
+              <span>2026.06.30 23:32</span>
+              <strong data-status="needs-review">검토 필요</strong>
+            </div>
+            <dl>
+              <div>
+                <dt>입력</dt>
+                <dd>오늘 영화 재미없었어</dd>
+              </div>
+              <div>
+                <dt>분해</dt>
+                <dd>오늘 / 영화 / 재미없다</dd>
+              </div>
+              <div>
+                <dt>피드백</dt>
+                <dd>"영화"가 기독교 의미의 단어로 재생되어 수정이 필요해 보입니다.</dd>
+              </div>
+              <div>
+                <dt>메모</dt>
+                <dd>토큰 분해는 맞지만 API 결과 선택이 흔들린 사례입니다. 단어 하나를 코드로 박지 않고, 의미 랭킹 회귀 케이스로 관리합니다.</dd>
+              </div>
+            </dl>
+          </article>
+          <article>
+            <div class="sheetMeta">
+              <span>2026.07.01 16:02</span>
+              <strong data-status="reflected">일부 반영</strong>
+            </div>
+            <dl>
+              <div>
+                <dt>입력</dt>
+                <dd>바빠서 멀리 못 가요</dd>
+              </div>
+              <div>
+                <dt>분해</dt>
+                <dd>바쁘다 / 멀다 / 가다 / 못</dd>
+              </div>
+              <div>
+                <dt>피드백</dt>
+                <dd>"못"이 부정 의미가 아니라 연못 계열 영상으로 재생되었습니다.</dd>
+              </div>
+              <div>
+                <dt>메모</dt>
+                <dd>프롬프트에서 부정 "안/못"을 모두 "부정" 표제어로 수렴하도록 반영했습니다. 코드 단어 예외처리는 추가하지 않았습니다.</dd>
+              </div>
+            </dl>
+          </article>
+        </div>
+      </section>
+
       <section class="aboutLinks" aria-label="관리 파일">
         <div>
           <strong>Git 관리 파일</strong>
