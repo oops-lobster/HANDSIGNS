@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>피드백 기록 | 손말관</title>
+    <meta name="description" content="손말관 수어 전문가 피드백과 개선 방향을 정리하는 기록 페이지입니다.">
+    <meta property="og:title" content="피드백 기록 | 손말관">
+    <meta property="og:description" content="손말관의 수어 전문가 피드백과 후속 개선 과제를 정리합니다.">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#11141A">
+    <link rel="icon" href="mark.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="aboutPage feedbackPage">
+      <header class="aboutHero">
+        <a class="backLink" href="index.html">손말관으로 돌아가기</a>
+        <div class="aboutTitle">
+          <img src="mark.svg" alt="손말관 로고" class="brandMark">
+          <div>
+            <p class="eyebrow">SONMALGWAN · FEEDBACK LOG</p>
+            <h1>피드백 기록</h1>
+            <p class="tagline">수어 전문가와 사용자에게 받은 의견을 기능 요구사항으로 정리하고, 손말관의 다음 개선 방향을 관리합니다.</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="aboutSection" aria-label="최근 피드백 요약">
+        <div class="sectionHeading">
+          <p class="eyebrow">2026.07.01 · 수어 전문가 피드백</p>
+          <h2>단어 매칭보다 문맥 해석과 재생 흐름이 더 중요해졌습니다.</h2>
+        </div>
+        <div class="feedbackSummary">
+          <article>
+            <span>Good</span>
+            <strong>간단한 문장은 비교적 잘 표현됨</strong>
+            <p>하나의 뜻만 가진 단어와 단순 문장은 수어 영상으로 자연스럽게 이어지는 편이라는 의견을 받았습니다.</p>
+          </article>
+          <article>
+            <span>Issue</span>
+            <strong>"안"의 의미 구분 실패</strong>
+            <p>"공부 안하고"의 부정 표현이 "안에서"처럼 장소 의미로 매칭되었습니다. 문맥 기반 의미 판별이 필요합니다.</p>
+          </article>
+          <article>
+            <span>Direction</span>
+            <strong>농식수어와 문장식 수어 중 방향 결정 필요</strong>
+            <p>수어와 한국어의 문장 구조 차이를 어떻게 다룰지 제품 원칙을 먼저 정해야 합니다.</p>
+          </article>
+          <article>
+            <span>UX</span>
+            <strong>짧은 영상 반복 재생이 이해를 방해함</strong>
+            <p>영상이 재생되고 끊기는 흐름이 반복되어 전체 문장을 보기 어렵다는 의견이 있었습니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="aboutSection" aria-label="상세 피드백">
+        <div class="sectionHeading">
+          <p class="eyebrow">Original Concern</p>
+          <h2>핵심 사례</h2>
+        </div>
+        <div class="feedbackCase">
+          <div>
+            <span>입력 문장</span>
+            <strong>학교가서 공부 안하고 쉬고 싶어</strong>
+          </div>
+          <div>
+            <span>관찰된 구조</span>
+            <strong>나 + 학교 + 공부 + 안에서 + 쉬고 + 싶어</strong>
+          </div>
+          <div>
+            <span>문제</span>
+            <strong>"안"을 부정이 아니라 장소로 해석함</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="aboutSection" aria-label="개선 과제">
+        <div class="sectionHeading">
+          <p class="eyebrow">Action Items</p>
+          <h2>다음 수정 후보</h2>
+        </div>
+        <div class="feedbackTasks">
+          <article>
+            <strong>1. "안" 문맥 규칙 강화</strong>
+            <p>"안 하다", "안하고", "안 먹다"는 부정으로, "안에", "안에서", "집 안"은 장소로 구분하도록 Gemini 프롬프트와 회귀 예시를 보강합니다.</p>
+          </article>
+          <article>
+            <strong>2. 수어 문장 방식 결정</strong>
+            <p>손말관 MVP가 농식수어에 가까운지, 문장식 수어에 가까운지 명시하고 그 기준에 맞춰 문장 순서를 다듬습니다.</p>
+          </article>
+          <article>
+            <strong>3. 영상 재생 UX 개선</strong>
+            <p>짧은 영상이 끊기는 느낌을 줄이기 위해 자막 브리지, 간격 조절, 수동 단계 모드, 전환 화면을 검토합니다.</p>
+          </article>
+          <article>
+            <strong>4. 전문가 추가 질문</strong>
+            <p>목표 수어 방식과 영상 이어보기 방식에 대해 후속 질문을 정리해 다시 의견을 구합니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="aboutLinks" aria-label="관리 파일">
+        <div>
+          <strong>Git 관리 파일</strong>
+          <p>상세 기록은 저장소의 FEEDBACK.md에서 함께 관리합니다.</p>
+        </div>
+        <a href="https://github.com/oops-lobster/HANDSIGNS/blob/main/FEEDBACK.md" target="_blank" rel="noreferrer">FEEDBACK.md 열기</a>
+      </section>
+    </main>
+  </body>
+</html>
