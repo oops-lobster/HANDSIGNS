@@ -12,7 +12,7 @@ await loadEnv(join(rootDir, ".env"));
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || "127.0.0.1";
 const geminiRateLimitWindowMs = 60_000;
-const geminiClientRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_CLIENT_PER_MINUTE || 6);
+const geminiClientRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_CLIENT_PER_MINUTE || 16);
 const geminiPlanCacheTtlMs = Number(process.env.GEMINI_PLAN_CACHE_TTL_MS || 6 * 60 * 60 * 1000);
 const cultureApiTimeoutMs = Number(process.env.CULTURE_API_TIMEOUT_MS || 20000);
 const geminiClientRequestWindows = globalThis.__handsignsGeminiClientRequestWindows || new Map();

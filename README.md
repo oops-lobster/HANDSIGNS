@@ -75,7 +75,7 @@ Fill in the API keys:
 GEMINI_API_KEY=
 GEMINI_API_KEYS=
 GEMINI_MODEL=gemini-2.5-flash
-GEMINI_RATE_LIMIT_PER_CLIENT_PER_MINUTE=6
+GEMINI_RATE_LIMIT_PER_CLIENT_PER_MINUTE=16
 CULTURE_API_INTEGRATED_KEY=
 CULTURE_API_LIFE_KEY=
 CULTURE_API_SPECIALIZED_KEY=
@@ -106,7 +106,7 @@ Set `FEEDBACK_LOG_WEBHOOK_URL` to a Google Apps Script Web App URL to save each 
 Gemini calls are protected in two ways:
 
 - Repeated requests for the same normalized sentence are served from an in-memory plan cache.
-- New Gemini planning calls are limited to 15 requests per minute per running server instance. When the limit is reached, the app shows a temporary rate-limit message before spending more tokens.
+- New Gemini planning calls are limited to 16 requests per minute per client. When the limit is reached, the app shows a temporary rate-limit message before spending more tokens.
 
 ## API Routes
 
@@ -149,7 +149,7 @@ Create a Vercel project from the GitHub repository or deploy with the Vercel CLI
 GEMINI_API_KEY=
 GEMINI_API_KEYS=
 GEMINI_MODEL=gemini-2.5-flash
-GEMINI_RATE_LIMIT_PER_CLIENT_PER_MINUTE=6
+GEMINI_RATE_LIMIT_PER_CLIENT_PER_MINUTE=16
 CULTURE_API_INTEGRATED_KEY=
 CULTURE_API_LIFE_KEY=
 CULTURE_API_SPECIALIZED_KEY=
