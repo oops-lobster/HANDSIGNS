@@ -39,6 +39,7 @@ let recognition = null;
 let isListening = false;
 let speechStopTimer = null;
 let latestFeedbackContext = null;
+const preloadedMediaUrls = new Set();
 
 initFontScaleControls();
 
@@ -181,7 +182,7 @@ function mediaFor(entry, options = {}) {
   if (videoUrl) {
     return `
       <div class="videoShell">
-        <video src="${escapeHtml(videoUrl)}" ${entry.imageUrl ? `poster="${escapeHtml(entry.imageUrl)}"` : ""} controls playsinline autoplay muted preload="metadata"></video>
+        <video src="${escapeHtml(videoUrl)}" ${entry.imageUrl ? `poster="${escapeHtml(entry.imageUrl)}"` : ""} controls playsinline autoplay muted preload="auto"></video>
       </div>
     `;
   }
@@ -225,6 +226,33 @@ function clearMediaTimer() {
 
 function hasRawVideoRetry(entry) {
   return Boolean(entry.rawVideoUrl && entry.rawVideoUrl !== entry.videoUrl);
+}
+
+function preloadMediaUrl(url, type) {
+  if (!url || preloadedMediaUrls.has(url)) return;
+  preloadedMediaUrls.add(url);
+
+  if (type === "video") {
+    const video = document.createElement("video");
+    video.src = url;
+    video.preload = "auto";
+    video.muted = true;
+    video.playsInline = true;
+    video.load();
+    return;
+  }
+
+  const image = new Image();
+  image.src = url;
+}
+
+function preloadUpcomingMedia(index) {
+  const upcoming = queue.slice(index + 1, index + 3);
+  upcoming.forEach(entry => {
+    preloadMediaUrl(entry.videoUrl, "video");
+    if (entry.rawVideoUrl !== entry.videoUrl) preloadMediaUrl(entry.rawVideoUrl, "video");
+    preloadMediaUrl(entry.imageUrl, "image");
+  });
 }
 
 function renderEntry(entry, index) {
@@ -440,6 +468,7 @@ function showPreview(index, options = {}) {
   clearMediaTimer();
   activeIndex = Math.max(0, Math.min(index, queue.length - 1));
   const entry = queue[activeIndex];
+  preloadUpcomingMedia(activeIndex);
 
   preview.innerHTML = `
     <article class="previewContent">

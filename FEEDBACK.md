@@ -64,19 +64,26 @@ Privacy note: Do not store the reviewer's name, school, contact details, or othe
 - "안" should be resolved by context before search:
   - "안에", "안에서", "집 안" -> inside/location
   - "안 하다", "안하고", "안 먹다" -> negation
+- Synonyms and inflected Korean expressions should converge to one searchable dictionary headword, not duplicate original and normalized forms.
+- Homonyms must be resolved before API search:
+  - "밤이 먹고 싶어" -> chestnut/food
+  - "오늘 밤" -> night/time
 - The app should expose or document its target signing style.
 - Playback needs a smoother experience, not only correct token matching.
 
 ### Follow-up Tasks
 
-- [ ] Strengthen the prompt rule for "안" as negation vs inside.
-- [ ] Add regression examples for:
+- [x] Strengthen the prompt rule for "안" as negation vs inside.
+- [x] Add synonym normalization rules so original forms and dictionary headwords are not both emitted.
+- [x] Add homonym examples for food/time context such as "밤".
+- [x] Add regression examples for:
   - "학교가서 공부 안하고 쉬고 싶어"
   - "밥 안 먹었어"
   - "집 안에서 쉬고 싶어"
+- [x] Preload upcoming media to reduce gaps between short sign videos.
 - [ ] Decide and document MVP signing style: 농식수어 vs 문장식 수어.
 - [ ] Explore smoother playback:
-  - reduced gap between clips
+  - reduced gap between clips (first pass: preload next videos)
   - clearer subtitle/caption bridge
   - optional manual step mode
   - possible transition screen between signs
