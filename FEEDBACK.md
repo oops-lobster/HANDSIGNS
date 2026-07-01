@@ -68,7 +68,7 @@ Privacy note: Do not store the reviewer's name, school, contact details, or othe
 - Homonyms must be resolved before API search:
   - "밤이 먹고 싶어" -> chestnut/food
   - "오늘 밤" -> night/time
-- The app should expose or document its target signing style.
+- The app should target a Deaf-centered meaning order rather than Korean word-for-word signed order.
 - Playback needs a smoother experience, not only correct token matching.
 
 ### Follow-up Tasks
@@ -81,7 +81,7 @@ Privacy note: Do not store the reviewer's name, school, contact details, or othe
   - "밥 안 먹었어"
   - "집 안에서 쉬고 싶어"
 - [x] Preload upcoming media to reduce gaps between short sign videos.
-- [ ] Decide and document MVP signing style: 농식수어 vs 문장식 수어.
+- [x] Decide and document MVP signing style: prioritize Deaf-centered meaning order close to natural KSL viewing flow.
 - [ ] Explore smoother playback:
   - reduced gap between clips (first pass: preload next videos)
   - clearer subtitle/caption bridge

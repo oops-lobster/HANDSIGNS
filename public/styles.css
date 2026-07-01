@@ -1273,6 +1273,44 @@ textarea:focus {
   min-height: 92px;
 }
 
+.translationNote {
+  display: grid;
+  grid-template-columns: 310px minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+  padding: 28px 32px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 88%, white 12%);
+}
+
+.translationNote span {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--accent-muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.translationNote strong {
+  display: block;
+  color: var(--text);
+  font-size: clamp(22px, 2.8vw, 30px);
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  line-height: 1.28;
+}
+
+.translationNote p {
+  max-width: 900px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 17px;
+  font-weight: 560;
+  line-height: 1.78;
+}
+
 .closingNote {
   margin-top: 24px;
   padding: 30px 34px;
@@ -1829,7 +1867,8 @@ textarea:focus {
 
   .creatorBar,
   .aboutLinks,
-  .feedbackForm {
+  .feedbackForm,
+  .translationNote {
     grid-template-columns: 1fr;
   }
 
@@ -1856,6 +1895,11 @@ textarea:focus {
   .sheetFeedback dl > div {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  .translationNote {
+    gap: 16px;
+    padding: 22px;
   }
 
   .creatorSignature,
