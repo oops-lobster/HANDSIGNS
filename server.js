@@ -73,6 +73,12 @@ const sourcePriority = {
   specialized: 2,
   culture: 3
 };
+const sourceCallPriority = {
+  integrated: 0,
+  life: 1,
+  specialized: 2,
+  culture: 3
+};
 
 const obligationTokens = new Set(["반드시", "꼭", "필수"]);
 const obligationCanonicalToken = "필수";
@@ -1256,7 +1262,7 @@ function sortEntries(entries, query) {
   );
 }
 
-async function searchCultureApis(query) {
+async function searchCultureApis(query, options = {}) {
   const sources = getConfiguredSources();
 
   if (!sources.length) {
@@ -1267,7 +1273,9 @@ async function searchCultureApis(query) {
   }
 
   const settled = [];
-  const prioritizedSources = [...sources].sort((a, b) => (sourcePriority[a.id] ?? 99) - (sourcePriority[b.id] ?? 99));
+  const prioritizedSources = [...sources]
+    .filter(source => !options.phraseOnly || source.id === "integrated")
+    .sort((a, b) => (sourceCallPriority[a.id] ?? 99) - (sourceCallPriority[b.id] ?? 99));
   const queryVariants = cultureQueryVariants(query);
 
   for (const source of prioritizedSources) {
@@ -1370,10 +1378,13 @@ async function searchItemsAcrossCultureApis(searchItems) {
   const sharedSearches = new Map();
   const results = new Array(searchItems.length);
   let nextIndex = 0;
+  let phraseCoverText = "";
 
-  const searchForTerm = term => {
-    const key = compactSearchText(term);
-    if (!sharedSearches.has(key)) sharedSearches.set(key, searchCultureApis(term));
+  const searchForItem = item => {
+    const key = `${item.type === "phrase" ? "phrase" : "term"}:${compactSearchText(item.term)}`;
+    if (!sharedSearches.has(key)) {
+      sharedSearches.set(key, searchCultureApis(item.term, { phraseOnly: item.type === "phrase" }));
+    }
     return sharedSearches.get(key);
   };
 
@@ -1382,7 +1393,24 @@ async function searchItemsAcrossCultureApis(searchItems) {
       const index = nextIndex;
       nextIndex += 1;
       const item = searchItems[index];
-      results[index] = { term: item.term, type: item.type, rawToken: item.rawToken, ...(await searchForTerm(item.term)) };
+      const itemText = compactSearchText(item.term);
+
+      if (phraseCoverText && (item.type === "phrase" || phraseCoverText.includes(itemText))) {
+        results[index] = {
+          term: item.term,
+          type: item.type,
+          rawToken: item.rawToken,
+          configured: true,
+          entries: [],
+          skipped: true
+        };
+        continue;
+      }
+
+      results[index] = { term: item.term, type: item.type, rawToken: item.rawToken, ...(await searchForItem(item)) };
+      if (item.type === "phrase" && results[index].entries?.length) {
+        phraseCoverText = itemText;
+      }
     }
   };
 
@@ -1399,7 +1427,7 @@ function hasSearchEntries(results) {
 
 async function retryMissingSearchResults(results, searchItems) {
   const missingIndexes = results
-    .map((result, index) => result.entries?.length ? -1 : index)
+    .map((result, index) => result.entries?.length || result.skipped ? -1 : index)
     .filter(index => index >= 0);
 
   if (!missingIndexes.length) return results;
