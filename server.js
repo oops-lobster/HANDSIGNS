@@ -1112,7 +1112,7 @@ function wait(ms) {
 
 async function searchOneSourceWithRetry(source, query) {
   let lastError = null;
-  const retryDelays = [0, 300, 800];
+  const retryDelays = [0, 600, 1500, 3000];
 
   for (let attempt = 0; attempt < retryDelays.length; attempt += 1) {
     if (retryDelays[attempt]) await wait(retryDelays[attempt]);
