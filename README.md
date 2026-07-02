@@ -2,6 +2,8 @@
 
 HANDSIGNS is an MVP for turning Korean text into a sequence of Korean Sign Language dictionary video candidates.
 
+BUT DEBUGGING IS ALWAYS HARD... I'm STILL WORKING ON IT.
+
 The project is designed as an early prototype for expert feedback. It does not claim to be a complete or authoritative sign-language interpreter yet. Instead, it gives sign-language experts, accessibility reviewers, and builders a concrete interface to evaluate matching quality, missing expressions, and the overall translation flow.
 
 ## Live Demo
