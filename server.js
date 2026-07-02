@@ -610,12 +610,12 @@ function phraseCandidatesFromTerms(terms) {
   for (let index = 0; index < lexicalTerms.length - 1; index += 1) {
     const first = lexicalTerms[index].term;
     const second = lexicalTerms[index + 1].term;
-    addCandidate(`${first} ${second}`, `${first} ${second}`);
     addCandidate(`${first}가 ${second}`, `${first}가 ${second}`);
     addCandidate(`${first}이 ${second}`, `${first}이 ${second}`);
+    addCandidate(`${first} ${second}`, `${first} ${second}`);
   }
 
-  return candidates;
+  return candidates.slice(0, 3);
 }
 
 function withPhraseCandidates(terms) {
@@ -1139,7 +1139,7 @@ function isLikelyTimeoutError(error) {
 
 async function searchOneSourceWithRetry(source, query) {
   let lastError = null;
-  const retryDelays = [0, 700];
+  const retryDelays = [0, 350, 900];
 
   for (let attempt = 0; attempt < retryDelays.length; attempt += 1) {
     if (retryDelays[attempt]) await wait(retryDelays[attempt]);
@@ -1148,6 +1148,7 @@ async function searchOneSourceWithRetry(source, query) {
     } catch (error) {
       if (error.status === 401) throw error;
       lastError = error;
+      if (isLikelyTimeoutError(error)) break;
     }
   }
 
@@ -1390,7 +1391,7 @@ async function searchItemsAcrossCultureApis(searchItems) {
   const results = new Array(searchItems.length);
   let nextIndex = 0;
   let phraseCoverText = "";
-  let cultureSearchUnavailable = false;
+  let phraseSearchUnavailable = false;
 
   const searchForItem = item => {
     const key = `${item.type === "phrase" ? "phrase" : "term"}:${compactSearchText(item.term)}`;
@@ -1407,7 +1408,7 @@ async function searchItemsAcrossCultureApis(searchItems) {
       const item = searchItems[index];
       const itemText = compactSearchText(item.term);
 
-      if (cultureSearchUnavailable) {
+      if (phraseSearchUnavailable && item.type === "phrase") {
         results[index] = {
           term: item.term,
           type: item.type,
@@ -1433,7 +1434,7 @@ async function searchItemsAcrossCultureApis(searchItems) {
 
       results[index] = { term: item.term, type: item.type, rawToken: item.rawToken, ...(await searchForItem(item)) };
       if (!results[index].entries?.length && results[index].warnings?.some(warning => warning.includes("temporarily unavailable"))) {
-        cultureSearchUnavailable = true;
+        phraseSearchUnavailable = item.type === "phrase";
       }
       if (item.type === "phrase" && results[index].entries?.length) {
         phraseCoverText = itemText;
