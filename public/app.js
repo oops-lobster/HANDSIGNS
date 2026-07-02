@@ -588,7 +588,19 @@ function flattenResults(data) {
       entries: bestEntries(result).filter(entry => entry.videoUrl)
     }))
     .find(item => item.entries.length);
-  if (phraseMatch) return phraseMatch.entries.slice(0, 1).map(entry => decorateEntry(entry, phraseMatch.result));
+  if (phraseMatch) {
+    const phraseEntry = phraseMatch.entries.slice(0, 1).map(entry => decorateEntry(entry, phraseMatch.result));
+    const phraseText = compactSearchText(phraseMatch.result.term);
+    const remainingEntries = data.results
+      .filter(result => result.type !== "phrase")
+      .filter(result => !phraseText.includes(compactSearchText(result.term)))
+      .flatMap(result => {
+        const entries = bestEntries(result);
+        if (entries.length) return entries.slice(0, 1).map(entry => decorateEntry(entry, result));
+        return [];
+      });
+    return [...phraseEntry, ...remainingEntries];
+  }
 
   return data.results
     .filter(result => result.type !== "phrase")
