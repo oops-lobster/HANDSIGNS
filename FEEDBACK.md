@@ -164,6 +164,58 @@ Privacy note: Do not store the reviewer's name, school, contact details, or othe
 
 Treat this feedback as product-scope guidance. Sonmalgwan should be honest about its limits and emphasize learning, review, and communication support instead of claiming full translation quality.
 
+## 2026-07-02 · Korean Sign Language Interpreter Association Feedback
+
+Source: Korean Sign Language interpreter association feedback  
+Context: Review note about phrase-level dictionary matching and decomposition policy.
+
+Privacy note: Store only the institution-level source and the technical issue. Do not store personal names or contact details.
+
+### Issue Found
+
+Phrase-level expressions can be more accurate than decomposed tokens.
+
+Example input:
+
+```text
+비가 내리다
+```
+
+Observed issue:
+
+```text
+비 + 내리다,하차
+```
+
+Problem:
+
+- The verb "내리다" has multiple dictionary senses.
+- When decomposed into `비` + `내리다`, the app can select the "get off / 하차" sign.
+- The dictionary has a phrase-level entry:
+
+```text
+비,강우,비가 내리다
+```
+
+### Product Interpretation
+
+- Prefer a matching phrase-level dictionary entry when it exists and matches the sentence meaning.
+- Fall back to decomposed tokens only when no phrase-level entry is found.
+- This should be a general policy, not a one-word exception for rain.
+
+### Follow-up Tasks
+
+- [x] Add phrase candidates before decomposed Gemini tokens.
+- [x] Update frontend phrase selection so any phrase candidate with media can override decomposed tokens.
+- [ ] Add regression cases:
+  - "비가 내리다"
+  - "눈이 내리다"
+  - "버스에서 내리다"
+
+### Current Decision
+
+Use the policy "larger exact meaning unit first, decomposed tokens second." This reduces homonym errors such as weather "내리다" being interpreted as vehicle disembarkation.
+
 ## Anonymous Spreadsheet Feedback
 
 Use this section for short text feedback copied from the public feedback sheet. Keep entries anonymous. Do not include names, email addresses, schools, phone numbers, or other personal details.

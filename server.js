@@ -566,6 +566,50 @@ function dictionaryTermVariants(term) {
   return variants.filter((variant, index, list) => variant && list.indexOf(variant) === index);
 }
 
+function isSimpleKoreanTerm(term) {
+  return /^[가-힣]+$/.test(compactSearchText(term));
+}
+
+function phraseCandidatesFromTerms(terms) {
+  const candidates = [];
+  const lexicalTerms = terms.filter(item =>
+    item?.type !== "fingerspelling" &&
+    isSimpleKoreanTerm(item?.term || "") &&
+    compactSearchText(item.term).length >= 1
+  );
+
+  const addCandidate = (term, rawToken) => {
+    const normalized = normalizeKslSearchTerm(term);
+    if (!normalized) return;
+    candidates.push({
+      term: normalized,
+      type: "phrase",
+      rawToken,
+      phraseCandidate: true
+    });
+  };
+
+  for (let index = 0; index < lexicalTerms.length - 1; index += 1) {
+    const first = lexicalTerms[index].term;
+    const second = lexicalTerms[index + 1].term;
+    addCandidate(`${first} ${second}`, `${first} ${second}`);
+    addCandidate(`${first}가 ${second}`, `${first}가 ${second}`);
+    addCandidate(`${first}이 ${second}`, `${first}이 ${second}`);
+  }
+
+  return candidates;
+}
+
+function withPhraseCandidates(terms) {
+  const seen = new Set();
+  return [...phraseCandidatesFromTerms(terms), ...terms].filter(item => {
+    const key = `${item.type}:${compactSearchText(item.term)}`;
+    if (!item.term || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 40);
+}
+
 function buildSearchTerms(text) {
   const normalized = normalizeSearchText(replaceNumbersWithKorean(text));
   const words = normalized.split(/\s+/).filter(Boolean);
@@ -671,7 +715,7 @@ function termsFromKslPlan(parsed) {
     .filter(Boolean);
 
   const seen = new Set();
-  return orderedTerms.map(token => {
+  const terms = orderedTerms.map(token => {
     const isFingerspelling = token.startsWith("FS_");
     const rawTerm = isFingerspelling ? token.slice(3) : replaceNumbersWithKorean(token);
     const term = normalizeKslSearchTerm(rawTerm);
@@ -687,6 +731,8 @@ function termsFromKslPlan(parsed) {
     seen.add(item.term);
     return true;
   }).slice(0, 32);
+
+  return withPhraseCandidates(terms);
 }
 
 function applyObligationOrdering(tokens) {

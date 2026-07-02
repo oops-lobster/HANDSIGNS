@@ -581,9 +581,14 @@ function wireVideo(video, entry, mediaFrame, options = {}) {
 }
 
 function flattenResults(data) {
-  const phraseResult = data.results.find(result => result.type === "phrase");
-  const phraseMedia = bestEntries(phraseResult).filter(entry => entry.videoUrl);
-  if (phraseMedia.length) return phraseMedia.slice(0, 1).map(entry => decorateEntry(entry, phraseResult));
+  const phraseMatch = data.results
+    .filter(result => result.type === "phrase")
+    .map(result => ({
+      result,
+      entries: bestEntries(result).filter(entry => entry.videoUrl)
+    }))
+    .find(item => item.entries.length);
+  if (phraseMatch) return phraseMatch.entries.slice(0, 1).map(entry => decorateEntry(entry, phraseMatch.result));
 
   return data.results
     .filter(result => result.type !== "phrase")
