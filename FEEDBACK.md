@@ -219,6 +219,52 @@ Problem:
 
 Use the policy "larger exact meaning unit first, decomposed tokens second." This reduces homonym errors such as weather "내리다" being interpreted as vehicle disembarkation.
 
+## 2026-07-02 · Product Direction Revision
+
+Source: Follow-up reflection after expert feedback  
+Context: Repositioning Sonmalgwan after feedback about 농식수어, 문장식 수어, dictionary-video limitations, and educational use cases.
+
+### Direction Change
+
+Sonmalgwan should not present itself as a finished Korean-to-KSL interpreter at the current MVP stage.
+
+The near-term product direction is:
+
+- Korean Sign Language learning and expression exploration tool first.
+- Communication-support prototype second.
+- Full bidirectional speech/text/sign communication as a long-term research direction.
+
+### Target Users to Validate
+
+- Hearing people who are beginning to learn Korean Sign Language.
+- Parents and family members who need to communicate with Deaf or hard-of-hearing children.
+- Early learners who need concrete daily-life expressions, repeated video exposure, and vocabulary exploration.
+- Teachers, interpreters, and Deaf users who can review whether the expression breakdown is appropriate.
+
+### Product Positioning
+
+Sonmalgwan currently helps users explore:
+
+- Which KSL dictionary headwords may relate to a Korean sentence.
+- How a sentence can be reduced into core meaning units.
+- Which sign videos exist for those units.
+- Where the system fails because of homophones, abstract language, missing dictionary entries, non-manual signals, or video-to-video rhythm.
+
+It should be described as a learning and review tool, not as a substitute for natural KSL interpretation.
+
+### Questions for Educators and Experts
+
+- Could a KSL learning tool like this help Deaf students, hard-of-hearing children, or their families?
+- Are there already sufficient tools for families learning daily KSL expressions, or is there still a gap?
+- In schools or family education, what sequence is used to teach KSL to beginners?
+- Should beginners start with daily vocabulary, situational expressions, sentence structure, facial expression/body movement, or another order?
+- In educational settings, how are 농식수어 and 문장식 수어 actually used?
+- Which style should Sonmalgwan prioritize if the goal is beginner learning rather than full interpretation?
+
+### Current Decision
+
+Keep improving the existing sentence-to-video prototype, but frame it as an exploratory learning surface. The next product iteration should make the learning goal explicit in the UI and documentation before adding more translation features.
+
 ## Anonymous Spreadsheet Feedback
 
 Use this section for short text feedback copied from the public feedback sheet. Keep entries anonymous. Do not include names, email addresses, schools, phone numbers, or other personal details.
