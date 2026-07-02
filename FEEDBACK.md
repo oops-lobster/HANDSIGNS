@@ -202,6 +202,7 @@ Problem:
 - Prefer a matching phrase-level dictionary entry when it exists and matches the sentence meaning.
 - Fall back to decomposed tokens only when no phrase-level entry is found.
 - This should be a general policy, not a one-word exception for rain.
+- Degree adverbs can sit between the noun and verb in Korean. They should not block phrase-level matching.
 
 ### Follow-up Tasks
 
@@ -209,8 +210,10 @@ Problem:
 - [x] Update frontend phrase selection so any phrase candidate with media can override decomposed tokens.
 - [ ] Add regression cases:
   - "비가 내리다"
+  - "비가 많이 내리다"
   - "눈이 내리다"
   - "버스에서 내리다"
+- [x] Treat degree modifiers such as `많다` as transparent while generating phrase-level candidates.
 
 ### Current Decision
 
