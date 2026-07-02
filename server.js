@@ -14,7 +14,7 @@ const host = process.env.HOST || "127.0.0.1";
 const geminiRateLimitWindowMs = 60_000;
 const geminiClientRateLimitMaxRequests = Number(process.env.GEMINI_RATE_LIMIT_PER_CLIENT_PER_MINUTE || 16);
 const geminiPlanCacheTtlMs = Number(process.env.GEMINI_PLAN_CACHE_TTL_MS || 6 * 60 * 60 * 1000);
-const cultureApiTimeoutMs = Number(process.env.CULTURE_API_TIMEOUT_MS || 20000);
+const cultureApiTimeoutMs = Number(process.env.CULTURE_API_TIMEOUT_MS || 4500);
 const geminiClientRequestWindows = globalThis.__handsignsGeminiClientRequestWindows || new Map();
 const geminiPlanCache = globalThis.__handsignsGeminiPlanCache || new Map();
 const cultureSearchCache = globalThis.__handsignsCultureSearchCache || new Map();
@@ -1128,9 +1128,18 @@ function wait(ms) {
   });
 }
 
+function isLikelyTimeoutError(error) {
+  const name = String(error?.name || "").toLowerCase();
+  const message = String(error?.message || "").toLowerCase();
+  return name.includes("timeout") ||
+    name.includes("abort") ||
+    message.includes("timeout") ||
+    message.includes("aborted");
+}
+
 async function searchOneSourceWithRetry(source, query) {
   let lastError = null;
-  const retryDelays = [0, 600, 1500, 3000];
+  const retryDelays = [0, 700];
 
   for (let attempt = 0; attempt < retryDelays.length; attempt += 1) {
     if (retryDelays[attempt]) await wait(retryDelays[attempt]);
@@ -1292,6 +1301,7 @@ async function searchCultureApis(query, options = {}) {
       } catch (error) {
         lastError = error;
         if (error.status === 401) break;
+        if (source.id === "integrated" && isLikelyTimeoutError(error)) break;
       }
     }
 
@@ -1311,6 +1321,7 @@ async function searchCultureApis(query, options = {}) {
         });
       }
       settled.push({ source, entries: [], error: lastError });
+      if (source.id === "integrated" && isLikelyTimeoutError(lastError)) break;
       continue;
     }
 
@@ -1379,6 +1390,7 @@ async function searchItemsAcrossCultureApis(searchItems) {
   const results = new Array(searchItems.length);
   let nextIndex = 0;
   let phraseCoverText = "";
+  let cultureSearchUnavailable = false;
 
   const searchForItem = item => {
     const key = `${item.type === "phrase" ? "phrase" : "term"}:${compactSearchText(item.term)}`;
@@ -1395,6 +1407,18 @@ async function searchItemsAcrossCultureApis(searchItems) {
       const item = searchItems[index];
       const itemText = compactSearchText(item.term);
 
+      if (cultureSearchUnavailable) {
+        results[index] = {
+          term: item.term,
+          type: item.type,
+          rawToken: item.rawToken,
+          configured: true,
+          entries: [],
+          skipped: true
+        };
+        continue;
+      }
+
       if (phraseCoverText && (item.type === "phrase" || phraseCoverText.includes(itemText))) {
         results[index] = {
           term: item.term,
@@ -1408,6 +1432,9 @@ async function searchItemsAcrossCultureApis(searchItems) {
       }
 
       results[index] = { term: item.term, type: item.type, rawToken: item.rawToken, ...(await searchForItem(item)) };
+      if (!results[index].entries?.length && results[index].warnings?.some(warning => warning.includes("temporarily unavailable"))) {
+        cultureSearchUnavailable = true;
+      }
       if (item.type === "phrase" && results[index].entries?.length) {
         phraseCoverText = itemText;
       }

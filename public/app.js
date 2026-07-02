@@ -46,23 +46,9 @@ initFontScaleControls();
 
 function bindPress(element, handler) {
   if (!element) return;
-  let lastDirectPointerAt = 0;
-
   const isDisabled = () => element.disabled || element.getAttribute("aria-disabled") === "true";
 
-  element.addEventListener("pointerup", event => {
-    if (!event.pointerType || event.pointerType === "mouse" || isDisabled()) return;
-    lastDirectPointerAt = Date.now();
-    event.preventDefault();
-    event.stopPropagation();
-    handler(event);
-  });
-
   element.addEventListener("click", event => {
-    if (Date.now() - lastDirectPointerAt < 700) {
-      event.preventDefault();
-      return;
-    }
     if (isDisabled()) return;
     handler(event);
   });
